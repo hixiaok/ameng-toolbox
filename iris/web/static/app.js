@@ -367,6 +367,82 @@ $("#about-fields").innerHTML = [
   ["运行时", "Python 标准库，零依赖"], ["数据", "本地处理，不外传"],
 ].map(([k, v]) => `<div class="row2"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("");
 
+/* ---------- 工具 ---------- */
+const apkInput = document.createElement("input");
+apkInput.type = "file";
+apkInput.accept = ".apk";
+apkInput.addEventListener("change", async () => {
+  const f = apkInput.files[0];
+  if (!f) return;
+  $("#apk-name").textContent = `${f.name} · ${(f.size / 1048576).toFixed(1)} MB`;
+  $("#apk-result").textContent = "安装中…";
+  try {
+    const res = await api("/api/app/install?name=" + encodeURIComponent(f.name), {
+      method: "POST",
+      body: f,
+      headers: { "Content-Type": "application/vnd.android.package-archive" },
+    });
+    $("#apk-result").textContent = res.message;
+  } catch (e) {
+    $("#apk-result").textContent = "失败：" + e.message;
+  } finally {
+    apkInput.value = "";
+  }
+});
+$("#pick-apk").addEventListener("click", () => apkInput.click());
+
+async function loadApps(all) {
+  const card = $("#apps-card");
+  const table = $("#apps-table");
+  table.innerHTML = '<p class="meta">读取中…</p>';
+  card.style.display = "";
+  try {
+    const data = await api("/api/app/list" + (all ? "?all=1" : ""));
+    $("#apps-title").textContent = `应用列表（${data.count}）`;
+    $("#apps-count").textContent = `已读取 ${data.count} 个`;
+    const rows = data.packages.map((p) =>
+      `<tr><td class="mono">${esc(p)}</td>
+           <td><button class="btn" data-pkg="${esc(p)}">卸载</button></td></tr>`).join("");
+    table.innerHTML = `<table><thead><tr><th>包名</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+    table.querySelectorAll("button[data-pkg]").forEach((b) => {
+      b.onclick = async () => {
+        if (!confirm(`卸载 ${b.dataset.pkg}？`)) return;
+        b.disabled = true;
+        try {
+          const r = await api("/api/app/uninstall?pkg=" + encodeURIComponent(b.dataset.pkg));
+          toast(r.message, !r.ok);
+          if (r.ok) b.closest("tr").remove();
+        } catch (e) {
+          toast(e.message, true);
+          b.disabled = false;
+        }
+      };
+    });
+  } catch (e) {
+    table.innerHTML = `<p class="meta">${esc(e.message)}</p>`;
+  }
+}
+
+$("#btn-apps").addEventListener("click", () => loadApps(false));
+$("#btn-apps-all").addEventListener("click", () => loadApps(true));
+
+$("#btn-shell").addEventListener("click", async () => {
+  const cmd = $("#shell-cmd").value.trim();
+  if (!cmd) return;
+  const out = $("#shell-out");
+  out.classList.remove("hidden");
+  out.textContent = "执行中…";
+  try {
+    const r = await api("/api/shell?cmd=" + encodeURIComponent(cmd));
+    out.textContent = r.output || "(无输出)";
+  } catch (e) {
+    out.textContent = e.message;
+  }
+});
+$("#shell-cmd").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") $("#btn-shell").click();
+});
+
 /* ---------- 启动 ---------- */
 loadDoctor();
 loadDevice(false);

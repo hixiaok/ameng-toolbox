@@ -25,6 +25,7 @@ from .. import __version__
 from ..core import diag
 from ..core.adb import Adb
 from ..core.device import actions as device_actions
+from ..core.device import apps as device_apps
 from ..core.errors import IrisError
 from ..core.image import avb as avb_mod
 from ..core.image import bootimg as bootimg_mod
@@ -161,6 +162,45 @@ class Handler(BaseHTTPRequestHandler):
 
         self._fail(404, "not found")
 
+    def _api_install(self, query: dict) -> None:
+        """接收 APK 并安装。大文件流式落盘，装完即删。"""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            self._fail(400, "Content-Length 非法")
+            return
+        if length <= 0:
+            self._fail(400, "空请求体")
+            return
+        if length > MAX_UPLOAD:
+            self._fail(413, "APK 过大")
+            return
+
+        tmp = tempfile.NamedTemporaryFile(prefix="iris-apk-", suffix=".apk", delete=False)
+        path = Path(tmp.name)
+        try:
+            remaining = length
+            while remaining > 0:
+                chunk = self.rfile.read(min(1 << 20, remaining))
+                if not chunk:
+                    break
+                tmp.write(chunk)
+                remaining -= len(chunk)
+            tmp.close()
+            if remaining:
+                self._fail(400, "上传不完整")
+                return
+            ok, msg = device_apps.install(Adb(), str(path))
+            self._json({"ok": ok, "message": msg})
+        except IrisError as exc:
+            self._fail(400, str(exc), exc.hint or "")
+        finally:
+            tmp.close()
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
     def _static(self, path: str) -> None:
         rel = path[len("/static/") :]
         target = (STATIC / rel).resolve()
@@ -274,6 +314,31 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(result.to_dict())
                 return
 
+            if path == "/api/app/list":
+                serial = (query.get("serial") or [None])[0]
+                all_pkgs = (query.get("all") or ["0"])[0] == "1"
+                pkgs = device_apps.list_packages(Adb(serial=serial), third_party_only=not all_pkgs)
+                self._json({"count": len(pkgs), "packages": pkgs})
+                return
+
+            if path == "/api/app/uninstall":
+                pkg = (query.get("pkg") or [""])[0]
+                if not pkg:
+                    self._fail(400, "缺少 pkg 参数")
+                    return
+                ok, msg = device_apps.uninstall(Adb(), pkg)
+                self._json({"ok": ok, "message": msg})
+                return
+
+            if path == "/api/shell":
+                cmd = (query.get("cmd") or [""])[0]
+                if not cmd:
+                    self._fail(400, "缺少 cmd 参数")
+                    return
+                ok, text = device_apps.shell(Adb(), cmd)
+                self._json({"ok": ok, "output": text})
+                return
+
             self._fail(404, "unknown endpoint")
         except IrisError as exc:
             self._fail(400, str(exc), exc.hint or "")
@@ -289,11 +354,17 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         url = urlparse(self.path)
+        query = parse_qs(url.query)
+
+        if url.path == "/api/app/install":
+            self._api_install(query)
+            return
+
         if url.path != "/api/upload":
             self._fail(404, "unknown endpoint")
             return
 
-        name = unquote((parse_qs(url.query).get("name") or ["upload.bin"])[0])
+        name = unquote((query.get("name") or ["upload.bin"])[0])
         suffix = Path(name).suffix or ".bin"
         try:
             length = int(self.headers.get("Content-Length") or 0)

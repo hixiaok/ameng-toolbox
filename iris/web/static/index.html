@@ -39,6 +39,7 @@
         <button class="nav active" data-view="doctor"><svg><use href="#i-gauge"/></svg><span>环境自检</span></button>
         <button class="nav" data-view="device"><svg><use href="#i-phone"/></svg><span>设备</span></button>
         <button class="nav" data-view="image"><svg><use href="#i-layers"/></svg><span>镜像分析</span></button>
+        <button class="nav" data-view="tools"><svg><use href="#i-log"/></svg><span>工具</span></button>
         <button class="nav" data-view="about"><svg><use href="#i-info"/></svg><span>关于</span></button>
       </nav>
       <div class="side-foot"><span>v0.3</span><span id="foot-state">离线</span></div>
@@ -136,6 +137,51 @@
 
           <div class="card span4 hidden" id="image-error-card">
             <div class="alert" id="image-error"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 工具 -->
+      <section class="view" id="view-tools">
+        <div class="cards">
+          <div class="card">
+            <h2>安装 APK</h2>
+            <div class="filerow">
+              <button class="btn btn-primary" id="pick-apk">选择 APK</button>
+              <span class="path" id="apk-name">未选择</span>
+            </div>
+            <p class="meta" id="apk-result"></p>
+          </div>
+
+          <div class="card">
+            <h2>应用列表</h2>
+            <div class="filerow">
+              <button class="btn" id="btn-apps">读取第三方应用</button>
+              <button class="btn" id="btn-apps-all">含系统应用</button>
+            </div>
+            <p class="meta" id="apps-count"></p>
+          </div>
+
+          <div class="card">
+            <h2>Shell</h2>
+            <div class="filerow">
+              <input class="input" id="shell-cmd" placeholder="例如 ls /sdcard" spellcheck="false">
+              <button class="btn btn-primary" id="btn-shell">执行</button>
+            </div>
+            <pre class="output hidden" id="shell-out"></pre>
+          </div>
+
+          <div class="card span3" id="apps-card" style="display:none">
+            <h2 id="apps-title">应用列表</h2>
+            <div class="table-wrap" id="apps-table"></div>
+          </div>
+
+          <div class="card span3">
+            <h2>说明</h2>
+            <p class="about-p">
+              这些操作通过 adb 完成，不需要 root：安装/卸载应用、执行 shell 命令。
+              卸载系统应用会被系统拒绝，需要 root 才能强制卸载。
+            </p>
           </div>
         </div>
       </section>

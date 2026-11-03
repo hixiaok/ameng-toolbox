@@ -231,6 +231,14 @@ tbody tr:last-child td { border-bottom: 0; }
 .filerow { display: flex; align-items: center; gap: 10px; min-height: 30px; }
 .path { font-family: var(--mono); font-size: 12px; color: var(--muted); word-break: break-all; }
 
+.input {
+  flex: 1; height: 30px; padding: 0 10px;
+  border: 1px solid var(--line-2); border-radius: 6px;
+  background: var(--card); color: var(--text);
+  font-family: var(--mono); font-size: 12.5px;
+}
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
 .empty { padding: 44px 10px; text-align: center; color: var(--muted); font-size: 13px; }
 .empty b { display: block; color: var(--text-2); font-size: 14px; margin-bottom: 4px; }
 .empty span { color: var(--dim); font-size: 12.5px; }
@@ -256,8 +264,7 @@ tbody tr:last-child td { border-bottom: 0; }
   color: var(--text-2); white-space: pre-wrap;
 }
 
-.about-p { font-size: 12.5px; color: var(--muted); line-height: 1.9; margin-bottom: 14px; }
-.about-p code { background: #f3f4f6; border-radius: 4px; padding: 1px 5px; }
+.about-p { font-size: 12.5px; color: var(--muted); line-height: 1.9; margin-bottom: 14px; }.about-p code { background: #f3f4f6; border-radius: 4px; padding: 1px 5px; }
 
 .toast {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
@@ -321,6 +328,7 @@ tbody tr:last-child td { border-bottom: 0; }
         <button class="nav active" data-view="doctor"><svg><use href="#i-gauge"/></svg><span>环境自检</span></button>
         <button class="nav" data-view="device"><svg><use href="#i-phone"/></svg><span>设备</span></button>
         <button class="nav" data-view="image"><svg><use href="#i-layers"/></svg><span>镜像分析</span></button>
+        <button class="nav" data-view="tools"><svg><use href="#i-log"/></svg><span>工具</span></button>
         <button class="nav" data-view="about"><svg><use href="#i-info"/></svg><span>关于</span></button>
       </nav>
       <div class="side-foot"><span>v0.3</span><span id="foot-state">离线</span></div>
@@ -418,6 +426,51 @@ tbody tr:last-child td { border-bottom: 0; }
 
           <div class="card span4 hidden" id="image-error-card">
             <div class="alert" id="image-error"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 工具 -->
+      <section class="view" id="view-tools">
+        <div class="cards">
+          <div class="card">
+            <h2>安装 APK</h2>
+            <div class="filerow">
+              <button class="btn btn-primary" id="pick-apk">选择 APK</button>
+              <span class="path" id="apk-name">未选择</span>
+            </div>
+            <p class="meta" id="apk-result"></p>
+          </div>
+
+          <div class="card">
+            <h2>应用列表</h2>
+            <div class="filerow">
+              <button class="btn" id="btn-apps">读取第三方应用</button>
+              <button class="btn" id="btn-apps-all">含系统应用</button>
+            </div>
+            <p class="meta" id="apps-count"></p>
+          </div>
+
+          <div class="card">
+            <h2>Shell</h2>
+            <div class="filerow">
+              <input class="input" id="shell-cmd" placeholder="例如 ls /sdcard" spellcheck="false">
+              <button class="btn btn-primary" id="btn-shell">执行</button>
+            </div>
+            <pre class="output hidden" id="shell-out"></pre>
+          </div>
+
+          <div class="card span3" id="apps-card" style="display:none">
+            <h2 id="apps-title">应用列表</h2>
+            <div class="table-wrap" id="apps-table"></div>
+          </div>
+
+          <div class="card span3">
+            <h2>说明</h2>
+            <p class="about-p">
+              这些操作通过 adb 完成，不需要 root：安装/卸载应用、执行 shell 命令。
+              卸载系统应用会被系统拒绝，需要 root 才能强制卸载。
+            </p>
           </div>
         </div>
       </section>
@@ -820,6 +873,82 @@ $("#about-fields").innerHTML = [
   ["版本", "v0.3.0"], ["许可证", "GPL-3.0"],
   ["运行时", "Python 标准库，零依赖"], ["数据", "本地处理，不外传"],
 ].map(([k, v]) => `<div class="row2"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("");
+
+/* ---------- 工具 ---------- */
+const apkInput = document.createElement("input");
+apkInput.type = "file";
+apkInput.accept = ".apk";
+apkInput.addEventListener("change", async () => {
+  const f = apkInput.files[0];
+  if (!f) return;
+  $("#apk-name").textContent = `${f.name} · ${(f.size / 1048576).toFixed(1)} MB`;
+  $("#apk-result").textContent = "安装中…";
+  try {
+    const res = await api("/api/app/install?name=" + encodeURIComponent(f.name), {
+      method: "POST",
+      body: f,
+      headers: { "Content-Type": "application/vnd.android.package-archive" },
+    });
+    $("#apk-result").textContent = res.message;
+  } catch (e) {
+    $("#apk-result").textContent = "失败：" + e.message;
+  } finally {
+    apkInput.value = "";
+  }
+});
+$("#pick-apk").addEventListener("click", () => apkInput.click());
+
+async function loadApps(all) {
+  const card = $("#apps-card");
+  const table = $("#apps-table");
+  table.innerHTML = '<p class="meta">读取中…</p>';
+  card.style.display = "";
+  try {
+    const data = await api("/api/app/list" + (all ? "?all=1" : ""));
+    $("#apps-title").textContent = `应用列表（${data.count}）`;
+    $("#apps-count").textContent = `已读取 ${data.count} 个`;
+    const rows = data.packages.map((p) =>
+      `<tr><td class="mono">${esc(p)}</td>
+           <td><button class="btn" data-pkg="${esc(p)}">卸载</button></td></tr>`).join("");
+    table.innerHTML = `<table><thead><tr><th>包名</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+    table.querySelectorAll("button[data-pkg]").forEach((b) => {
+      b.onclick = async () => {
+        if (!confirm(`卸载 ${b.dataset.pkg}？`)) return;
+        b.disabled = true;
+        try {
+          const r = await api("/api/app/uninstall?pkg=" + encodeURIComponent(b.dataset.pkg));
+          toast(r.message, !r.ok);
+          if (r.ok) b.closest("tr").remove();
+        } catch (e) {
+          toast(e.message, true);
+          b.disabled = false;
+        }
+      };
+    });
+  } catch (e) {
+    table.innerHTML = `<p class="meta">${esc(e.message)}</p>`;
+  }
+}
+
+$("#btn-apps").addEventListener("click", () => loadApps(false));
+$("#btn-apps-all").addEventListener("click", () => loadApps(true));
+
+$("#btn-shell").addEventListener("click", async () => {
+  const cmd = $("#shell-cmd").value.trim();
+  if (!cmd) return;
+  const out = $("#shell-out");
+  out.classList.remove("hidden");
+  out.textContent = "执行中…";
+  try {
+    const r = await api("/api/shell?cmd=" + encodeURIComponent(cmd));
+    out.textContent = r.output || "(无输出)";
+  } catch (e) {
+    out.textContent = e.message;
+  }
+});
+$("#shell-cmd").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") $("#btn-shell").click();
+});
 
 /* ---------- 启动 ---------- */
 loadDoctor();

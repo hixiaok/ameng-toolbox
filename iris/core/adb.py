@@ -140,6 +140,10 @@ class Adb:
         return usable[0]
 
     # ---- 执行 -----------------------------------------------------
+    def run(self, *args: str, timeout: float | None = None) -> proc.ProcResult:
+        """通用透传（不经过 shell），用于 adb install / push 这类子命令。"""
+        return self._run(*args, timeout=timeout)
+
     def shell(self, *args: str, timeout: float | None = None) -> proc.ProcResult:
         """在设备上执行命令。参数列表透传，不经过本地 shell。"""
         return self._run("shell", *args, timeout=timeout)

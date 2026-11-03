@@ -311,6 +311,48 @@ def cmd_payload(args) -> int:
     return 0
 
 
+def cmd_app(args) -> int:
+    from .core.device import apps as device_apps
+
+    adb = Adb(exe=args.adb, serial=args.serial)
+    if args.app_cmd == "list":
+        pkgs = device_apps.list_packages(adb, third_party_only=not args.all)
+        if args.json:
+            print(json.dumps(pkgs, ensure_ascii=False, indent=2))
+        else:
+            for p in pkgs:
+                print(p)
+            print(f"\n共 {len(pkgs)} 个")
+        return 0
+
+    if args.app_cmd == "install":
+        target = args.target or ""
+        if not target:
+            raise IrisError("缺少 APK 路径", hint="iris app install <x.apk>")
+        ok, msg = device_apps.install(adb, target)
+        print(("✓ " if ok else "✗ ") + msg)
+        return 0 if ok else 1
+
+    if args.app_cmd == "uninstall":
+        target = args.target or ""
+        if not target:
+            raise IrisError("缺少包名", hint="iris app uninstall <包名>")
+        ok, msg = device_apps.uninstall(adb, target)
+        print(("✓ " if ok else "✗ ") + msg)
+        return 0 if ok else 1
+
+    raise IrisError("未知子命令", hint="list / install / uninstall")
+
+
+def cmd_shell(args) -> int:
+    from .core.device import apps as device_apps
+
+    adb = Adb(exe=args.adb, serial=args.serial)
+    ok, text = device_apps.shell(adb, args.command, timeout=args.timeout)
+    print(text or "(无输出)")
+    return 0 if ok else 1
+
+
 # ---- 解析器 -------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="iris", description="Iris —— Android 设备工具链")
@@ -340,6 +382,19 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("image", help="磁盘镜像文件")
     sp.add_argument("--json", action="store_true", help="输出 JSON")
     sp.set_defaults(func=cmd_gpt)
+
+    sp = sub.add_parser("app", help="应用管理：list / install / uninstall")
+    add_common(sp)
+    sp.add_argument("app_cmd", choices=["list", "install", "uninstall"])
+    sp.add_argument("target", nargs="?", help="APK 路径或包名")
+    sp.add_argument("--all", action="store_true", help="列表包含系统应用")
+    sp.set_defaults(func=cmd_app)
+
+    sp = sub.add_parser("shell", help="在设备上执行 shell 命令")
+    sp.add_argument("command", help="要执行的命令")
+    sp.add_argument("--timeout", type=float, default=30.0, help="超时秒数")
+    add_common(sp)
+    sp.set_defaults(func=cmd_shell)
 
     sp = sub.add_parser("super", help="解析 super 动态分区元数据（离线）")
     sp.add_argument("image", help="super 镜像文件")
