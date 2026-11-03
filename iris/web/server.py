@@ -26,6 +26,7 @@ from ..core import diag
 from ..core.adb import Adb
 from ..core.device import actions as device_actions
 from ..core.device import apps as device_apps
+from ..core.device import files as device_files
 from ..core.tools import local as local_tools
 from ..core.errors import IrisError
 from ..core.image import avb as avb_mod
@@ -403,6 +404,21 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/tool":
                 self._api_tool(query)
+                return
+
+            if path == "/api/file/ls":
+                remote = (query.get("path") or ["/sdcard"])[0]
+                self._json({"items": device_files.ls(Adb(), remote)})
+                return
+
+            if path == "/api/file/pull":
+                remote = (query.get("remote") or [""])[0]
+                if not remote:
+                    self._fail(400, "缺少 remote 参数")
+                    return
+                dest = SHOTS / Path(remote).name
+                ok, msg = device_files.pull(Adb(), remote, str(dest))
+                self._json({"ok": ok, "message": msg})
                 return
 
             self._fail(404, "unknown endpoint")
