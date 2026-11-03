@@ -199,3 +199,63 @@ def describe_path(path: str | Path) -> dict:
         "chunk_stats": stats,
         "version": f"{info.major}.{info.minor}",
     }
+
+
+def pack(src: str | Path, dst: str | Path, *, block_size: int = 4096) -> dict:
+    """raw → sparse：连续零块写成 DONT_CARE，其余写成 RAW。"""
+    s = Path(src)
+    if not s.is_file():
+        raise InvalidImage(f"文件不存在：{s}")
+
+    size = s.stat().st_size
+    if size and size % block_size:
+        raise InvalidImage(f"文件大小必须按 {block_size}B 对齐（当前 {size}）")
+
+    zeros = b"\x00" * block_size
+    total_blocks = size // block_size
+    chunks: list[tuple[int, int, bytes]] = []
+
+    raw_buf = bytearray()
+    raw_blocks = 0
+
+    with s.open("rb") as f:
+        while True:
+            block = f.read(block_size)
+            if not block:
+                break
+            if block == zeros:
+                if raw_blocks:
+                    chunks.append((CHUNK_RAW, raw_blocks, bytes(raw_buf)))
+                    raw_buf.clear()
+                    raw_blocks = 0
+                if chunks and chunks[-1][0] == CHUNK_DONT_CARE:
+                    t, n, _ = chunks[-1]
+                    chunks[-1] = (t, n + 1, b"")
+                else:
+                    chunks.append((CHUNK_DONT_CARE, 1, b""))
+            else:
+                raw_buf += block
+                raw_blocks += 1
+    if raw_blocks:
+        chunks.append((CHUNK_RAW, raw_blocks, bytes(raw_buf)))
+
+    header = struct.pack(
+        "<IHHHHIIII", MAGIC, 1, 0, HEADER_SIZE, CHUNK_HEADER_SIZE,
+        block_size, total_blocks, len(chunks), 0,
+    )
+    with Path(dst).open("wb") as out:
+        out.write(header)
+        for ctype, blocks, payload in chunks:
+            if ctype == CHUNK_RAW:
+                out.write(struct.pack("<HHII", ctype, 0, blocks, CHUNK_HEADER_SIZE + len(payload)))
+                out.write(payload)
+            else:
+                out.write(struct.pack("<HHII", ctype, 0, blocks, CHUNK_HEADER_SIZE))
+
+    return {
+        "output": str(dst),
+        "blocks": total_blocks,
+        "chunks": len(chunks),
+        "input_bytes": size,
+        "output_bytes": Path(dst).stat().st_size,
+    }

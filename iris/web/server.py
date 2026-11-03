@@ -26,6 +26,7 @@ from ..core import diag
 from ..core.adb import Adb
 from ..core.device import actions as device_actions
 from ..core.device import apps as device_apps
+from ..core.tools import local as local_tools
 from ..core.errors import IrisError
 from ..core.image import avb as avb_mod
 from ..core.image import bootimg as bootimg_mod
@@ -161,6 +162,34 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         self._fail(404, "not found")
+
+    def _api_tool(self, query: dict) -> None:
+        op = (query.get("op") or [""])[0]
+        target = (query.get("path") or [""])[0]
+        arg = (query.get("arg") or [""])[0]
+        if not op or not target:
+            self._fail(400, "缺少 op 或 path")
+            return
+
+        try:
+            if op == "hash":
+                result = local_tools.hash_file(target)
+            elif op == "split":
+                result = {"parts": local_tools.split_file(target, arg or "2G", None)}
+            elif op == "join":
+                result = local_tools.join_files(target, arg)
+            elif op == "gptxml":
+                result = local_tools.gpt_to_rawprogram(target, arg)
+            elif op == "sparsepack":
+                result = local_tools.pack_sparse(target, arg)
+            elif op == "bootunpack":
+                result = bootimg_mod.extract(bootimg_mod.parse(target), target, arg)
+            else:
+                self._fail(400, f"未知操作：{op}")
+                return
+            self._json({"ok": True, "result": result})
+        except IrisError as exc:
+            self._fail(400, str(exc), exc.hint or "")
 
     def _api_install(self, query: dict) -> None:
         """接收 APK 并安装。大文件流式落盘，装完即删。"""
@@ -337,6 +366,10 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 ok, text = device_apps.shell(Adb(), cmd)
                 self._json({"ok": ok, "output": text})
+                return
+
+            if path == "/api/tool":
+                self._api_tool(query)
                 return
 
             self._fail(404, "unknown endpoint")

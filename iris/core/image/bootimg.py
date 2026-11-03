@@ -156,3 +156,30 @@ def parse(path: str | Path) -> BootImage:
         second_offset=second_offset,
         notes=notes,
     )
+
+
+def extract(img: BootImage, src: str | Path, out_dir: str | Path) -> dict:
+    """按头里的偏移切出 kernel / ramdisk。"""
+    source = Path(src)
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    written: dict[str, str] = {}
+    with source.open("rb") as f:
+        f.seek(img.kernel_offset)
+        kernel = f.read(img.kernel_size)
+        (out / "kernel").write_bytes(kernel)
+        written["kernel"] = str(out / "kernel")
+
+        if img.ramdisk_size:
+            f.seek(img.ramdisk_offset)
+            ramdisk = f.read(img.ramdisk_size)
+            (out / "ramdisk").write_bytes(ramdisk)
+            written["ramdisk"] = str(out / "ramdisk")
+
+    return {
+        "output_dir": str(out),
+        "files": written,
+        "kernel_bytes": len(kernel),
+        "ramdisk_bytes": img.ramdisk_size,
+    }

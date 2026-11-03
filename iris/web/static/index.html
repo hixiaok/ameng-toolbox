@@ -177,6 +177,24 @@
           </div>
 
           <div class="card span3">
+            <h2>本地文件工具</h2>
+            <div class="filerow">
+              <input class="input" id="tool-path" placeholder="文件路径，例如 D:\img\boot.img" spellcheck="false">
+              <select class="input" id="tool-op" style="flex:0 0 150px">
+                <option value="hash">计算哈希</option>
+                <option value="bootunpack">拆 boot 镜像</option>
+                <option value="sparsepack">打包 sparse</option>
+                <option value="gptxml">GPT 转 XML</option>
+                <option value="split">拆分文件</option>
+                <option value="join">合并分片</option>
+              </select>
+              <input class="input" id="tool-arg" placeholder="参数：输出路径 / 分片大小" spellcheck="false" style="flex:0 0 240px">
+              <button class="btn btn-primary" id="btn-tool">执行</button>
+            </div>
+            <pre class="output hidden" id="tool-out"></pre>
+          </div>
+
+          <div class="card span3">
             <h2>说明</h2>
             <p class="about-p">
               这些操作通过 adb 完成，不需要 root：安装/卸载应用、执行 shell 命令。

@@ -443,6 +443,26 @@ $("#shell-cmd").addEventListener("keydown", (e) => {
   if (e.key === "Enter") $("#btn-shell").click();
 });
 
+/* ---------- 本地文件工具 ---------- */
+$("#btn-tool").addEventListener("click", async () => {
+  const target = $("#tool-path").value.trim();
+  const op = $("#tool-op").value;
+  const arg = $("#tool-arg").value.trim();
+  const out = $("#tool-out");
+  if (!target) {
+    toast("先填文件路径", true);
+    return;
+  }
+  out.classList.remove("hidden");
+  out.textContent = "执行中…";
+  try {
+    const r = await api(`/api/tool?op=${op}&path=${encodeURIComponent(target)}&arg=${encodeURIComponent(arg)}`);
+    out.textContent = JSON.stringify(r.result, null, 2);
+  } catch (e) {
+    out.textContent = "失败：" + e.message;
+  }
+});
+
 /* ---------- 启动 ---------- */
 loadDoctor();
 loadDevice(false);

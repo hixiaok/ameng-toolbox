@@ -353,6 +353,68 @@ def cmd_shell(args) -> int:
     return 0 if ok else 1
 
 
+def cmd_hash(args) -> int:
+    from .core.tools import local
+
+    result = local.hash_file(args.file)
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(f"文件   : {result['path']}")
+        print(f"大小   : {lp_mod.human_size(result['size'])}")
+        for algo in ("md5", "sha1", "sha256"):
+            if algo in result:
+                print(f"{algo:<7}: {result[algo]}")
+    return 0
+
+
+def cmd_split(args) -> int:
+    from .core.tools import local
+
+    parts = local.split_file(args.file, args.size, args.out)
+    print(f"已拆成 {len(parts)} 片")
+    for p in parts[:8]:
+        print("  " + p)
+    if len(parts) > 8:
+        print(f"  …… 共 {len(parts)} 片")
+    return 0
+
+
+def cmd_join(args) -> int:
+    from .core.tools import local
+
+    result = local.join_files(args.parts, args.out)
+    print(f"已合并 {result['parts']} 片 → {args.out}（{lp_mod.human_size(result['bytes'])}）")
+    return 0
+
+
+def cmd_sparsepack(args) -> int:
+    from .core.tools import local
+
+    result = local.pack_sparse(args.file, args.out, block_size=args.block_size)
+    print(f"已打包 → {args.out}")
+    print(f"  {lp_mod.human_size(result['input_bytes'])} → {lp_mod.human_size(result['output_bytes'])}"
+          f"（{result['chunks']} 个 chunk）")
+    return 0
+
+
+def cmd_gptxml(args) -> int:
+    from .core.tools import local
+
+    result = local.gpt_to_rawprogram(args.file, args.out)
+    print(f"已生成 {args.out}（{result['partitions']} 个分区，扇区 {result['sector_size']}B）")
+    return 0
+
+
+def cmd_bootunpack(args) -> int:
+    result = bootimg_mod.extract(bootimg_mod.parse(args.file), args.file, args.out)
+    print(f"已解包到 {result['output_dir']}")
+    print(f"  kernel  {lp_mod.human_size(result['kernel_bytes'])}")
+    if result["ramdisk_bytes"]:
+        print(f"  ramdisk {lp_mod.human_size(result['ramdisk_bytes'])}")
+    return 0
+
+
 # ---- 解析器 -------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="iris", description="Iris —— Android 设备工具链")
@@ -395,6 +457,38 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--timeout", type=float, default=30.0, help="超时秒数")
     add_common(sp)
     sp.set_defaults(func=cmd_shell)
+
+    sp = sub.add_parser("hash", help="计算文件 MD5 / SHA1 / SHA256")
+    sp.add_argument("file", help="文件路径")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_hash)
+
+    sp = sub.add_parser("split", help="按大小拆分文件（如 2G / 512M）")
+    sp.add_argument("file", help="文件路径")
+    sp.add_argument("--size", required=True, help="每片大小，例如 2G")
+    sp.add_argument("--out", help="输出目录（默认同目录）")
+    sp.set_defaults(func=cmd_split)
+
+    sp = sub.add_parser("join", help="合并分片")
+    sp.add_argument("parts", help="分片目录、前缀或通配符")
+    sp.add_argument("--out", required=True, help="输出文件")
+    sp.set_defaults(func=cmd_join)
+
+    sp = sub.add_parser("sparsepack", help="把 raw 镜像打包成 sparse")
+    sp.add_argument("file", help="raw 镜像")
+    sp.add_argument("--out", required=True, help="输出 sparse 文件")
+    sp.add_argument("--block-size", type=int, default=4096, dest="block_size")
+    sp.set_defaults(func=cmd_sparsepack)
+
+    sp = sub.add_parser("gptxml", help="由 GPT 生成 rawprogram.xml（9008 用）")
+    sp.add_argument("file", help="带 GPT 的磁盘镜像")
+    sp.add_argument("--out", required=True, help="输出 xml")
+    sp.set_defaults(func=cmd_gptxml)
+
+    sp = sub.add_parser("bootunpack", help="拆出 boot.img 的内核与 ramdisk")
+    sp.add_argument("file", help="boot 镜像")
+    sp.add_argument("--out", required=True, help="输出目录")
+    sp.set_defaults(func=cmd_bootunpack)
 
     sp = sub.add_parser("super", help="解析 super 动态分区元数据（离线）")
     sp.add_argument("image", help="super 镜像文件")
