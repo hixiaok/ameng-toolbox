@@ -187,8 +187,10 @@ def render_about(version: str) -> str:
 
 def _inline(html: str) -> str:
     css = (STATIC / "style.css").read_text("utf-8")
+    themes = (STATIC / "themes.css").read_text("utf-8")
     js = (STATIC / "app.js").read_text("utf-8")
     html = html.replace('<link rel="stylesheet" href="/static/style.css">', f"<style>\n{css}\n</style>")
+    html = html.replace('<link rel="stylesheet" href="/static/themes.css">', f"<style>\n{themes}\n</style>")
     html = html.replace('<script src="/static/app.js"></script>', f"<script>\n{js}\n</script>")
     return html
 

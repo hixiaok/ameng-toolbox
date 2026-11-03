@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Iris · Android Toolchain</title>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/themes.css">
 </head>
-<body>
+<body data-theme="win">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M13.4 10.6 17 7"/><path d="M4.5 18a9 9 0 1 1 15 0"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/><path d="M11 18.5h2"/></symbol>
@@ -23,6 +24,12 @@
       <span class="tb-sub">Android Toolchain</span>
     </div>
     <div class="tb-right">
+      <span class="themes" id="themes">
+        <button class="theme-btn" data-t="win" title="系统灰"></button>
+        <button class="theme-btn" data-t="light" title="素白"></button>
+        <button class="theme-btn" data-t="green" title="绿"></button>
+        <button class="theme-btn" data-t="dark" title="深夜"></button>
+      </span>
       <span class="tb-chip" id="tb-version">v0.2.0</span>
     </div>
   </header>

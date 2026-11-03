@@ -291,6 +291,31 @@ $("#about-fields").innerHTML = [
   ["前端", "单页 HTML/CSS/JS + http.server"],
 ].map(([k, v]) => `<div class="field"><em>${esc(k)}</em><b>${esc(v)}</b></div>`).join("");
 
+/* ---------- 主题 ---------- */
+const THEMES = ["win", "light", "green", "dark"];
+
+function applyTheme(name) {
+  if (!THEMES.includes(name)) name = "win";
+  if (name === "green") {
+    document.body.removeAttribute("data-theme");
+  } else {
+    document.body.dataset.theme = name;
+  }
+  document.querySelectorAll(".theme-btn").forEach((b) =>
+    b.setAttribute("aria-pressed", String(b.dataset.t === name)));
+  try { localStorage.setItem("iris-theme", name); } catch (e) { /* file:// 可能禁止 */ }
+}
+
+document.querySelectorAll(".theme-btn").forEach((b) => {
+  b.addEventListener("click", () => applyTheme(b.dataset.t));
+});
+
+try {
+  applyTheme(localStorage.getItem("iris-theme") || "win");
+} catch (e) {
+  applyTheme("win");
+}
+
 /* ---------- 启动 ---------- */
 $("#btn-doctor").addEventListener("click", loadDoctor);
 $("#btn-refresh").addEventListener("click", () => loadDevice(true));
