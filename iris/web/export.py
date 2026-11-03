@@ -161,6 +161,48 @@ def render_image(analysis: dict) -> str:
         )
         return meta + table
 
+    if kind == "boot":
+        b = analysis["boot"]
+        rows = [
+            ("header 版本", f'v{b["header_version"]}'),
+            ("头大小", f'{b["header_size"]}B'),
+            ("页大小", f'{b["page_size"]}B'),
+            ("内核", f'{_human(b["kernel_size"])} @ {b["kernel_offset"]}'),
+            ("ramdisk", f'{_human(b["ramdisk_size"])} @ {b["ramdisk_offset"]}'),
+            ("second", _human(b["second_size"])),
+            ("系统版本", b["os_version"]),
+            ("名称", b["name"] or "—"),
+        ]
+        fields = "".join(f'<div class="field"><em>{_e(k)}</em><b>{_e(v)}</b></div>' for k, v in rows)
+        notes = f' · <b style="color:var(--warn)">{_e("；".join(b["notes"]))}</b>' if b.get("notes") else ""
+        return (
+            f'<div class="fields">{fields}</div>'
+            f'<p class="meta" style="border-bottom:0">cmdline：<b>{_e(b["cmdline"] or "—")}</b>{notes}</p>'
+        )
+
+    if kind == "avb":
+        a = analysis["avb"]
+        rows = [
+            ("版本", a["version"]),
+            ("签名算法", a["algorithm"]),
+            ("flags", f'0x{a["flags"]:x}'),
+            ("dm-verity", "已关闭" if a["verity_disabled"] else "启用"),
+            ("关闭项", ", ".join(a["flag_names"]) or "无"),
+            ("auth / aux", f'{a["auth_size"]}B / {a["aux_size"]}B'),
+            ("工具版本", a["release_string"] or "—"),
+        ]
+        fields = "".join(f'<div class="field"><em>{_e(k)}</em><b>{_e(v)}</b></div>' for k, v in rows)
+        desc = "".join(
+            f'<tr><td class="mono">{_e(d["name"])}</td><td>{d["size"]}B</td></tr>'
+            for d in a.get("descriptors", [])
+        )
+        table = (
+            '<div class="table-wrap" style="margin-top:10px"><table>'
+            '<thead><tr><th>描述符</th><th>大小</th></tr></thead>'
+            f"<tbody>{desc}</tbody></table></div>"
+        )
+        return f'<div class="fields">{fields}</div>{table}'
+
     if kind == "sparse":
         s = analysis["info"]
         stats = "，".join(f"{k} ×{v}" for k, v in s["chunk_stats"].items())
@@ -245,7 +287,7 @@ def build_snapshot(image: str | None = None, version: str = "0.2.0") -> str:
         page = page.replace('<div id="image-result" class="hidden">', '<div id="image-result">')
         page = page.replace('<span class="tag" id="image-kind">-</span>',
                             f'<span class="tag" id="image-kind">'
-                            f'{ {"gpt": "GPT 分区表", "lp": "super 元数据", "sparse": "sparse 镜像", "payload": "payload.bin"}.get(analysis["kind"], analysis["kind"]) }</span>')
+                            f'{ {"gpt": "GPT 分区表", "lp": "super 元数据", "sparse": "sparse 镜像", "payload": "payload.bin", "boot": "boot 镜像", "avb": "AVB 签名"}.get(analysis["kind"], analysis["kind"]) }</span>')
         page = page.replace('<span class="group-note" id="image-name"></span>',
                             f'<span class="group-note" id="image-name">{_e(name)}</span>')
         page = page.replace('<div id="image-body"></div>',

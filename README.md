@@ -16,6 +16,9 @@
 | `iris info` | 设备画像：机型、SoC、A/B 槽位、安全补丁、by-name 根路径、分区表 |
 | `iris gpt <img>` | 离线解析 GPT：主/备表、CRC 校验、分区起止与大小 |
 | `iris super <img>` | 离线解析 super：LP geometry/header、分区与 extent 布局、checksum 告警 |
+| `iris super <img> --extract system_a` | 从 super 里切出单个分区镜像 |
+| `iris boot <img>` | 解析 boot.img / init_boot.img 头（v0–v4） |
+| `iris avb <img>` | 解析 vbmeta：签名算法、flags、描述符 |
 | `iris sparse <img>` | 识别 sparse 镜像，`--unpack` 展开为 raw |
 | `iris payload <bin>` | 解析 OTA payload.bin，`--extract boot` 直接还原分区镜像 |
 | `iris gui` | 本地 Web 界面：环境自检 / 设备画像 / 镜像拖放分析 + 分区提取 |

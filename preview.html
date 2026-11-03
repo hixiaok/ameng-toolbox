@@ -284,9 +284,118 @@ tbody tr:hover { background: var(--panel-2); }
 }
 
 </style>
-<script>window.__IRIS_DATA__ = {"/api/doctor": {"platform": "Windows-10-10.0.19045-SP0", "python": "3.13.15", "checks": [{"name": "python", "status": "ok", "detail": "3.13.15", "hint": ""}, {"name": "os", "status": "ok", "detail": "Windows 10", "hint": ""}, {"name": "adb", "status": "ok", "detail": "D:\\deepseek\\platform-tools\\adb.exe | Android Debug Bridge version 1.0.41", "hint": ""}, {"name": "fastboot", "status": "warn", "detail": "PATH 中未找到", "hint": "platform-tools 里自带，加入 PATH 即可"}, {"name": "devices", "status": "warn", "detail": "没有检测到设备", "hint": "检查 USB 调试、数据线、驱动；Fastboot 模式请用 `iris fastboot` 相关命令"}, {"name": "windows driver", "status": "warn", "detail": "驱动问题无法自动检测", "hint": "设备管理器里出现黄色感叹号时装 Google USB Driver 或厂商驱动"}]}, "/api/info_error": "没有处于 device 状态的设备", "/api/analyze": {"kind": "payload", "payload": {"version": 2, "block_size": 4096, "data_start": 144, "partition_count": 2, "partitions": [{"name": "boot", "size_bytes": 8192, "operation_count": 1, "operations": ["REPLACE"], "extractable": true}, {"name": "system", "size_bytes": 12288, "operation_count": 1, "operations": ["REPLACE"], "extractable": true}]}}};</script>
+<style>
+/* 主题覆盖层：只改变量 + 个别形状，不改结构 */
+
+/* ---------- 系统灰（Win32 工具风，最接近柚坛/紫罗兰） ---------- */
+[data-theme="win"] {
+  --bg: #f0f0f0;
+  --panel: #ffffff;
+  --panel-2: #f7f7f7;
+  --line: #dcdcdc;
+  --line-2: #adadad;
+  --text: #1a1a1a;
+  --text-2: #333333;
+  --muted: #666666;
+  --dim: #8a8a8a;
+  --accent: #2b579a;
+  --accent-hover: #1f437a;
+  --accent-weak: #e8eef7;
+  --accent-line: #b9c8de;
+}
+[data-theme="win"] .titlebar { height: 40px; background: #fff; }
+[data-theme="win"] .side { background: #f0f0f0; border-right: 1px solid #dcdcdc; }
+[data-theme="win"] .nav { border-radius: 0; height: 34px; }
+[data-theme="win"] .nav.active {
+  background: #cfe0f3; color: #1a3a5c; font-weight: 600;
+  border: 1px solid #a9c3e0;
+}
+[data-theme="win"] .group,
+[data-theme="win"] .btn,
+[data-theme="win"] .empty,
+[data-theme="win"] .tag,
+[data-theme="win"] .chip,
+[data-theme="win"] .tb-chip,
+[data-theme="win"] .tb-logo,
+[data-theme="win"] .stat,
+[data-theme="win"] .field,
+[data-theme="win"] .alert { border-radius: 2px; box-shadow: none; }
+[data-theme="win"] .group-head { background: #fff; }
+[data-theme="win"] .btn { background: #f0f0f0; border-color: #adadad; color: #1a1a1a; height: 26px; }
+[data-theme="win"] .btn:hover { background: #e5f1fb; border-color: #0078d7; }
+[data-theme="win"] .btn-primary {
+  background: #e1e1e1; border-color: #adadad; color: #1a1a1a;
+}
+[data-theme="win"] .btn-primary:hover { background: #e5f1fb; border-color: #0078d7; }
+[data-theme="win"] th { background: #f0f0f0; }
+[data-theme="win"] .statusbar { background: #f0f0f0; }
+[data-theme="win"] .tb-logo { background: #2b579a; }
+
+/* ---------- 素白（极简，黑白灰 + 一点蓝） ---------- */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #fafafa;
+  --line: #ececec;
+  --line-2: #dcdcdc;
+  --text: #111111;
+  --text-2: #333333;
+  --muted: #767676;
+  --dim: #a0a0a0;
+  --accent: #111111;
+  --accent-hover: #000000;
+  --accent-weak: #f4f4f4;
+  --accent-line: #e2e2e2;
+}
+[data-theme="light"] .side { background: #fafafa; }
+[data-theme="light"] .tb-logo { background: #111; }
+[data-theme="light"] .btn-primary { background: #111; border-color: #111; }
+[data-theme="light"] .btn-primary:hover { background: #000; border-color: #000; }
+
+/* ---------- 深夜 ---------- */
+[data-theme="dark"] {
+  --bg: #14161a;
+  --panel: #1b1e24;
+  --panel-2: #21252c;
+  --line: #2a2f38;
+  --line-2: #39404b;
+  --text: #e6e8ec;
+  --text-2: #c2c7d0;
+  --muted: #8b93a0;
+  --dim: #6b7280;
+  --accent: #4ea1ff;
+  --accent-hover: #6fb3ff;
+  --accent-weak: #1e2b3d;
+  --accent-line: #2f4460;
+}
+[data-theme="dark"] .side { background: #171a1f; }
+[data-theme="dark"] .titlebar,
+[data-theme="dark"] .statusbar { background: #1b1e24; }
+[data-theme="dark"] .tb-logo { background: #4ea1ff; color: #0b0d10; }
+[data-theme="dark"] th { background: #21252c; }
+[data-theme="dark"] .row:hover,
+[data-theme="dark"] tbody tr:hover { background: #21252c; }
+[data-theme="dark"] .btn { background: #21252c; color: var(--text); }
+[data-theme="dark"] .alert { background: #2a1d1f; border-color: #4a2b2f; color: #ff9ba4; }
+
+/* ---------- 主题切换按钮 ---------- */
+.themes { display: inline-flex; gap: 4px; margin-right: 8px; }
+.theme-btn {
+  width: 20px; height: 20px; padding: 0; cursor: pointer;
+  border-radius: 50%; border: 1px solid var(--line-2);
+  transition: transform .12s, box-shadow .12s;
+}
+.theme-btn:hover { transform: scale(1.12); }
+.theme-btn[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.theme-btn[data-t="green"] { background: #199e63; }
+.theme-btn[data-t="win"]   { background: #2b579a; }
+.theme-btn[data-t="light"] { background: #f5f5f5; }
+.theme-btn[data-t="dark"]  { background: #1b1e24; border-color: #4a4f58; }
+
+</style>
+<script>window.__IRIS_DATA__ = {"/api/doctor": {"platform": "Windows-10-10.0.19045-SP0", "python": "3.13.15", "checks": [{"name": "python", "status": "ok", "detail": "3.13.15", "hint": ""}, {"name": "os", "status": "ok", "detail": "Windows 10", "hint": ""}, {"name": "adb", "status": "ok", "detail": "D:\\deepseek\\platform-tools\\adb.exe | Android Debug Bridge version 1.0.41", "hint": ""}, {"name": "fastboot", "status": "warn", "detail": "PATH 中未找到", "hint": "platform-tools 里自带，加入 PATH 即可"}, {"name": "devices", "status": "warn", "detail": "没有检测到设备", "hint": "检查 USB 调试、数据线、驱动；Fastboot 模式请用 `iris fastboot` 相关命令"}, {"name": "windows driver", "status": "warn", "detail": "驱动问题无法自动检测", "hint": "设备管理器里出现黄色感叹号时装 Google USB Driver 或厂商驱动"}]}, "/api/info_error": "没有处于 device 状态的设备", "/api/analyze": {"kind": "boot", "boot": {"magic": "ANDROID!", "header_version": 4, "header_size": 1584, "page_size": 4096, "kernel_size": 5000, "ramdisk_size": 3000, "second_size": 0, "os_version": "16.0.0 (2006-01)", "name": "", "cmdline": "console=ttyMSM0 androidboot.hardware=qcom", "kernel_offset": 4096, "ramdisk_offset": 12288, "notes": []}}};</script>
 </head>
-<body>
+<body data-theme="win">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M13.4 10.6 17 7"/><path d="M4.5 18a9 9 0 1 1 15 0"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/><path d="M11 18.5h2"/></symbol>
@@ -303,6 +412,12 @@ tbody tr:hover { background: var(--panel-2); }
       <span class="tb-sub">Android Toolchain</span>
     </div>
     <div class="tb-right">
+      <span class="themes" id="themes">
+        <button class="theme-btn" data-t="win" title="系统灰"></button>
+        <button class="theme-btn" data-t="light" title="素白"></button>
+        <button class="theme-btn" data-t="green" title="绿"></button>
+        <button class="theme-btn" data-t="dark" title="深夜"></button>
+      </span>
       <span class="tb-chip" id="tb-version">v0.2.0</span>
     </div>
   </header>
@@ -370,7 +485,7 @@ tbody tr:hover { background: var(--panel-2); }
           <div class="group-head"><span>镜像文件</span></div>
           <div class="filerow">
             <button class="btn btn-primary" id="pick"><svg class="btn-ico"><use href="#i-folder"/></svg>选择文件…</button>
-            <span class="path" id="file-name">demo_payload.bin</span>
+            <span class="path" id="file-name">demo_boot.img</span>
           </div>
         </div>
 
@@ -378,10 +493,10 @@ tbody tr:hover { background: var(--panel-2); }
           <div class="group">
             <div class="group-head">
               <span>分析结果</span>
-              <span class="tag" id="image-kind">payload.bin</span>
-              <span class="group-note" id="image-name">demo_payload.bin</span>
+              <span class="tag" id="image-kind">boot 镜像</span>
+              <span class="group-note" id="image-name">demo_boot.img</span>
             </div>
-            <div id="image-body"><p class="meta">payload 版本 <b>2</b> · 块 <b>4096B</b> · <b>2</b> 个分区</p><div class="table-wrap"><table><thead><tr><th>分区</th><th>解包后大小</th><th>操作数</th><th>类型</th></tr></thead><tbody><tr><td class="mono">boot</td><td>8.0KiB</td><td style="color:var(--muted)">1</td><td style="color:var(--muted)">REPLACE</td></tr><tr><td class="mono">system</td><td>12.0KiB</td><td style="color:var(--muted)">1</td><td style="color:var(--muted)">REPLACE</td></tr></tbody></table></div></div>
+            <div id="image-body"><div class="fields"><div class="field"><em>header 版本</em><b>v4</b></div><div class="field"><em>头大小</em><b>1584B</b></div><div class="field"><em>页大小</em><b>4096B</b></div><div class="field"><em>内核</em><b>4.9KiB @ 4096</b></div><div class="field"><em>ramdisk</em><b>2.9KiB @ 12288</b></div><div class="field"><em>second</em><b>0B</b></div><div class="field"><em>系统版本</em><b>16.0.0 (2006-01)</b></div><div class="field"><em>名称</em><b>—</b></div></div><p class="meta" style="border-bottom:0">cmdline：<b>console=ttyMSM0 androidboot.hardware=qcom</b></p></div>
           </div>
         </div>
 
@@ -646,7 +761,8 @@ async function extractPart(ticket, part, btn) {
 
 function renderImage(data) {
   $("#image-kind").textContent =
-    { gpt: "GPT 分区表", lp: "super 元数据", sparse: "sparse 镜像", payload: "payload.bin" }[data.kind] || data.kind;
+    { gpt: "GPT 分区表", lp: "super 元数据", sparse: "sparse 镜像", payload: "payload.bin",
+      boot: "boot 镜像", avb: "AVB 签名" }[data.kind] || data.kind;
   const body = $("#image-body");
 
   if (data.kind === "payload") {
@@ -689,14 +805,58 @@ function renderImage(data) {
     const rows = m.partitions.map((p) => `
       <tr><td class="mono">${esc(p.name)}</td><td>${p.size_human}</td>
           <td style="color:var(--muted)">${p.extent_count}</td>
-          <td style="color:var(--muted)">${p.group_index}</td></tr>`).join("");
+          <td style="color:var(--muted)">${p.group_index}</td>
+          <td>${data.ticket ? `<button class="btn" data-part="${esc(p.name)}">提取</button>` : ""}</td></tr>`).join("");
     body.innerHTML = `
       <p class="meta">版本 <b>${m.header.version}</b> · header <b>${m.header.header_size}B</b> ·
          块大小 <b>${m.geometry.logical_block_size}B</b> · 逻辑容量 <b>${human(m.logical_size)}</b>
          ${m.warnings.length ? ` · <b style="color:var(--warn)">${esc(m.warnings.join("；"))}</b>` : ""}</p>
       <div class="table-wrap"><table>
-        <thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th></tr></thead>
+        <thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th><th>操作</th></tr></thead>
         <tbody>${rows}</tbody></table></div>`;
+    body.querySelectorAll("button[data-part]").forEach((btn) => {
+      btn.onclick = () => extractPart(data.ticket, btn.dataset.part, btn);
+    });
+    return;
+  }
+
+  if (data.kind === "boot") {
+    const b = data.boot;
+    const rows = [
+      ["header 版本", `v${b.header_version}`],
+      ["头大小", `${b.header_size}B`],
+      ["页大小", `${b.page_size}B`],
+      ["内核", `${human(b.kernel_size)} @ ${b.kernel_offset}`],
+      ["ramdisk", `${human(b.ramdisk_size)} @ ${b.ramdisk_offset}`],
+      ["second", human(b.second_size)],
+      ["系统版本", b.os_version],
+      ["名称", b.name || "—"],
+    ].map(([k, v]) => `<div class="field"><em>${esc(k)}</em><b>${esc(v)}</b></div>`).join("");
+    body.innerHTML = `
+      <div class="fields">${rows}</div>
+      <p class="meta" style="border-bottom:0">cmdline：<b>${esc(b.cmdline || "—")}</b>
+        ${b.notes.length ? ` · <b style="color:var(--warn)">${esc(b.notes.join("；"))}</b>` : ""}</p>`;
+    return;
+  }
+
+  if (data.kind === "avb") {
+    const a = data.avb;
+    const rows = [
+      ["版本", a.version],
+      ["签名算法", a.algorithm],
+      ["flags", `0x${a.flags.toString(16)}`],
+      ["dm-verity", a.verity_disabled ? "已关闭" : "启用"],
+      ["关闭项", (a.flag_names || []).join(", ") || "无"],
+      ["auth / aux", `${a.auth_size}B / ${a.aux_size}B`],
+      ["工具版本", a.release_string || "—"],
+    ].map(([k, v]) => `<div class="field"><em>${esc(k)}</em><b>${esc(v)}</b></div>`).join("");
+    const desc = (a.descriptors || []).map((d) =>
+      `<tr><td class="mono">${esc(d.name)}</td><td>${d.size}B</td></tr>`).join("");
+    body.innerHTML = `
+      <div class="fields">${rows}</div>
+      <div class="table-wrap" style="margin-top:10px"><table>
+        <thead><tr><th>描述符</th><th>大小</th></tr></thead><tbody>${desc}</tbody></table></div>`;
+    return;
   }
 
   if (data.kind === "sparse") {
@@ -717,6 +877,31 @@ $("#about-fields").innerHTML = [
   ["第三方二进制", "不打包"],
   ["前端", "单页 HTML/CSS/JS + http.server"],
 ].map(([k, v]) => `<div class="field"><em>${esc(k)}</em><b>${esc(v)}</b></div>`).join("");
+
+/* ---------- 主题 ---------- */
+const THEMES = ["win", "light", "green", "dark"];
+
+function applyTheme(name) {
+  if (!THEMES.includes(name)) name = "win";
+  if (name === "green") {
+    document.body.removeAttribute("data-theme");
+  } else {
+    document.body.dataset.theme = name;
+  }
+  document.querySelectorAll(".theme-btn").forEach((b) =>
+    b.setAttribute("aria-pressed", String(b.dataset.t === name)));
+  try { localStorage.setItem("iris-theme", name); } catch (e) { /* file:// 可能禁止 */ }
+}
+
+document.querySelectorAll(".theme-btn").forEach((b) => {
+  b.addEventListener("click", () => applyTheme(b.dataset.t));
+});
+
+try {
+  applyTheme(localStorage.getItem("iris-theme") || "win");
+} catch (e) {
+  applyTheme("win");
+}
 
 /* ---------- 启动 ---------- */
 $("#btn-doctor").addEventListener("click", loadDoctor);

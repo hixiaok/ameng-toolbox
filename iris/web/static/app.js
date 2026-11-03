@@ -219,7 +219,8 @@ async function extractPart(ticket, part, btn) {
 
 function renderImage(data) {
   $("#image-kind").textContent =
-    { gpt: "GPT 分区表", lp: "super 元数据", sparse: "sparse 镜像", payload: "payload.bin" }[data.kind] || data.kind;
+    { gpt: "GPT 分区表", lp: "super 元数据", sparse: "sparse 镜像", payload: "payload.bin",
+      boot: "boot 镜像", avb: "AVB 签名" }[data.kind] || data.kind;
   const body = $("#image-body");
 
   if (data.kind === "payload") {
@@ -262,14 +263,58 @@ function renderImage(data) {
     const rows = m.partitions.map((p) => `
       <tr><td class="mono">${esc(p.name)}</td><td>${p.size_human}</td>
           <td style="color:var(--muted)">${p.extent_count}</td>
-          <td style="color:var(--muted)">${p.group_index}</td></tr>`).join("");
+          <td style="color:var(--muted)">${p.group_index}</td>
+          <td>${data.ticket ? `<button class="btn" data-part="${esc(p.name)}">提取</button>` : ""}</td></tr>`).join("");
     body.innerHTML = `
       <p class="meta">版本 <b>${m.header.version}</b> · header <b>${m.header.header_size}B</b> ·
          块大小 <b>${m.geometry.logical_block_size}B</b> · 逻辑容量 <b>${human(m.logical_size)}</b>
          ${m.warnings.length ? ` · <b style="color:var(--warn)">${esc(m.warnings.join("；"))}</b>` : ""}</p>
       <div class="table-wrap"><table>
-        <thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th></tr></thead>
+        <thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th><th>操作</th></tr></thead>
         <tbody>${rows}</tbody></table></div>`;
+    body.querySelectorAll("button[data-part]").forEach((btn) => {
+      btn.onclick = () => extractPart(data.ticket, btn.dataset.part, btn);
+    });
+    return;
+  }
+
+  if (data.kind === "boot") {
+    const b = data.boot;
+    const rows = [
+      ["header 版本", `v${b.header_version}`],
+      ["头大小", `${b.header_size}B`],
+      ["页大小", `${b.page_size}B`],
+      ["内核", `${human(b.kernel_size)} @ ${b.kernel_offset}`],
+      ["ramdisk", `${human(b.ramdisk_size)} @ ${b.ramdisk_offset}`],
+      ["second", human(b.second_size)],
+      ["系统版本", b.os_version],
+      ["名称", b.name || "—"],
+    ].map(([k, v]) => `<div class="field"><em>${esc(k)}</em><b>${esc(v)}</b></div>`).join("");
+    body.innerHTML = `
+      <div class="fields">${rows}</div>
+      <p class="meta" style="border-bottom:0">cmdline：<b>${esc(b.cmdline || "—")}</b>
+        ${b.notes.length ? ` · <b style="color:var(--warn)">${esc(b.notes.join("；"))}</b>` : ""}</p>`;
+    return;
+  }
+
+  if (data.kind === "avb") {
+    const a = data.avb;
+    const rows = [
+      ["版本", a.version],
+      ["签名算法", a.algorithm],
+      ["flags", `0x${a.flags.toString(16)}`],
+      ["dm-verity", a.verity_disabled ? "已关闭" : "启用"],
+      ["关闭项", (a.flag_names || []).join(", ") || "无"],
+      ["auth / aux", `${a.auth_size}B / ${a.aux_size}B`],
+      ["工具版本", a.release_string || "—"],
+    ].map(([k, v]) => `<div class="field"><em>${esc(k)}</em><b>${esc(v)}</b></div>`).join("");
+    const desc = (a.descriptors || []).map((d) =>
+      `<tr><td class="mono">${esc(d.name)}</td><td>${d.size}B</td></tr>`).join("");
+    body.innerHTML = `
+      <div class="fields">${rows}</div>
+      <div class="table-wrap" style="margin-top:10px"><table>
+        <thead><tr><th>描述符</th><th>大小</th></tr></thead><tbody>${desc}</tbody></table></div>`;
+    return;
   }
 
   if (data.kind === "sparse") {

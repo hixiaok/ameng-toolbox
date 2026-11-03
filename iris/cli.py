@@ -16,6 +16,8 @@ from . import __version__
 from .core import diag
 from .core.adb import Adb
 from .core.errors import IrisError
+from .core.image import avb as avb_mod
+from .core.image import bootimg as bootimg_mod
 from .core.image import lp as lp_mod
 from .core.image import payload as payload_mod
 from .core.image import sparse as sparse_mod
@@ -159,6 +161,17 @@ def cmd_gpt(args) -> int:
 
 def cmd_super(args) -> int:
     meta = lp_mod.read_path(args.image)
+
+    if args.extract:
+        part = meta.find(args.extract)
+        if part is None:
+            names = ", ".join(p.name for p in meta.partitions[:12])
+            raise IrisError(f"分区 {args.extract} 不存在", hint=f"可选：{names}")
+        out = args.out or f"{part.name}.img"
+        stats = lp_mod.extract_partition(meta, part, out, src=args.image)
+        print(f"已提取 {part.name} → {out}（{lp_mod.human_size(stats['bytes'])}）")
+        return 0
+
     if args.json:
         print(json.dumps(meta.to_dict(), ensure_ascii=False, indent=2))
         return 0
@@ -189,6 +202,53 @@ def cmd_super(args) -> int:
                 kind = "linear" if e.is_linear else ("zero" if e.is_zero else str(e.target_type))
                 print(f"  {p.name}[{i}] {kind} sectors={e.num_sectors} "
                       f"offset={e.byte_offset} ({lp_mod.human_size(e.num_sectors * 512)})")
+    print("\n提取某个分区：iris super <super.img> --extract system_a --out system.img")
+    return 0
+
+
+def cmd_boot(args) -> int:
+    img = bootimg_mod.parse(args.image)
+    if args.json:
+        print(json.dumps(img.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+
+    rows = [
+        ("header 版本", f"v{img.header_version}"),
+        ("头大小", f"{img.header_size}B"),
+        ("页大小", f"{img.page_size}B"),
+        ("内核", f"{lp_mod.human_size(img.kernel_size)} @ {img.kernel_offset}"),
+        ("ramdisk", f"{lp_mod.human_size(img.ramdisk_size)} @ {img.ramdisk_offset}"),
+        ("second", f"{lp_mod.human_size(img.second_size)}"),
+        ("系统版本", img.os_version),
+        ("名称", img.name or "—"),
+        ("cmdline", img.cmdline or "—"),
+    ]
+    width = max(_dw(k) for k, _ in rows)
+    for k, v in rows:
+        print(f"{_pad(k, width)} : {v}")
+    for note in img.notes:
+        print(f"⚠ {note}")
+    return 0
+
+
+def cmd_avb(args) -> int:
+    meta = avb_mod.parse(args.image)
+    if args.json:
+        print(json.dumps(meta.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+
+    print(f"版本      : {meta.version_major}.{meta.version_minor}")
+    print(f"签名算法  : {meta.algorithm_name}")
+    print(f"flags     : 0x{meta.flags:X}")
+    print(f"verity    : {'已关闭' if meta.is_verity_disabled else '启用'}")
+    print(f"校验/验证 : {', '.join(meta.flag_names) or '均启用'}")
+    print(f"auth 块   : {meta.auth_size}B · aux 块 {meta.aux_size}B")
+    print(f"工具版本  : {meta.release_string or '—'}")
+    if meta.descriptors:
+        print("\n描述符：")
+        for tag, size in meta.descriptors:
+            name = avb_mod.DESCRIPTOR_TAGS.get(tag, f"unknown({tag})")
+            print(f"  - {name} ({size}B)")
     return 0
 
 
@@ -285,7 +345,19 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("image", help="super 镜像文件")
     sp.add_argument("--json", action="store_true", help="输出 JSON")
     sp.add_argument("--verbose", action="store_true", help="显示 extent 明细")
+    sp.add_argument("--extract", metavar="PART", help="提取指定分区")
+    sp.add_argument("--out", metavar="FILE", help="提取输出路径")
     sp.set_defaults(func=cmd_super)
+
+    sp = sub.add_parser("boot", help="解析 boot.img / init_boot.img 头")
+    sp.add_argument("image", help="boot 镜像文件")
+    sp.add_argument("--json", action="store_true", help="输出 JSON")
+    sp.set_defaults(func=cmd_boot)
+
+    sp = sub.add_parser("avb", help="解析 vbmeta / AVB 签名信息")
+    sp.add_argument("image", help="vbmeta 镜像文件")
+    sp.add_argument("--json", action="store_true", help="输出 JSON")
+    sp.set_defaults(func=cmd_avb)
 
     sp = sub.add_parser("sparse", help="识别/展开 Android sparse 镜像")
     sp.add_argument("image", help="sparse 镜像文件")

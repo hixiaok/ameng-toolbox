@@ -25,6 +25,8 @@ from .. import __version__
 from ..core import diag
 from ..core.adb import Adb
 from ..core.errors import IrisError
+from ..core.image import avb as avb_mod
+from ..core.image import bootimg as bootimg_mod
 from ..core.image import lp as lp_mod
 from ..core.image import payload as payload_mod
 from ..core.image import sparse as sparse_mod
@@ -35,15 +37,16 @@ BASE = Path(__file__).parent
 STATIC = BASE / "static"
 MAX_UPLOAD = 16 * 1024 * 1024 * 1024  # 单文件上限 16GB
 
-# 上传的 payload 保留一段时间，供「提取分区」使用
+# 上传的 payload / super 保留一段时间，供「提取分区」使用
 SESSION_TTL = 30 * 60
-_SESSIONS: dict[str, tuple[Path, float]] = {}
+_SESSIONS: dict[str, tuple[Path, float, str]] = {}
 _SESSIONS_LOCK = threading.Lock()
 
 
 def _purge_sessions() -> None:
     now = time.time()
-    for key, (path, expire) in list(_SESSIONS.items()):
+    for key, entry in list(_SESSIONS.items()):
+        path, expire, _kind = entry
         if expire < now:
             _SESSIONS.pop(key, None)
             try:
@@ -70,6 +73,12 @@ def detect_and_parse(path: Path) -> dict:
 
     if payload_mod.is_payload(head):
         return {"kind": "payload", "payload": payload_mod.parse(path).to_dict()}
+
+    if bootimg_mod.is_boot(head):
+        return {"kind": "boot", "boot": bootimg_mod.parse(path).to_dict()}
+
+    if avb_mod.is_vbmeta(head):
+        return {"kind": "avb", "avb": avb_mod.parse(path).to_dict()}
 
     if len(head) >= 520 and (head[512:520] == b"EFI PART" or (len(head) >= 4104 and head[4096:4104] == b"EFI PART")):
         return {"kind": "gpt", "table": gpt_mod.read_path(path).to_dict()}
@@ -190,18 +199,25 @@ class Handler(BaseHTTPRequestHandler):
             self._fail(410, "上传已过期（30 分钟），请重新选择文件")
             return
 
-        src = entry[0]
-        pay = payload_mod.parse(src)
-        part = pay.find(part_name)
-        if part is None:
-            self._fail(404, f"分区 {part_name} 不存在")
-            return
-
+        src, _expire, kind = entry
         tmp = tempfile.NamedTemporaryFile(prefix="iris-extract-", suffix=".img", delete=False)
         tmp.close()
         out = Path(tmp.name)
         try:
-            payload_mod.extract(pay, part, out, src=src)
+            if kind == "payload":
+                pay = payload_mod.parse(src)
+                part = pay.find(part_name)
+                if part is None:
+                    self._fail(404, f"分区 {part_name} 不存在")
+                    return
+                payload_mod.extract(pay, part, out, src=src)
+            else:
+                meta = lp_mod.read_path(src)
+                part = meta.find(part_name)
+                if part is None:
+                    self._fail(404, f"分区 {part_name} 不存在")
+                    return
+                lp_mod.extract_partition(meta, part, out, src=src)
             self._send_file(out, f"{part_name}.img")
         finally:
             try:
@@ -296,12 +312,12 @@ class Handler(BaseHTTPRequestHandler):
 
             result = detect_and_parse(tmp_path)
 
-            # payload 要留着供后续提取分区，发一个票据；其它格式解析完即删
-            if result.get("kind") == "payload":
+            # payload / super 要留着供后续提取分区，发一个票据；其它格式解析完即删
+            if result.get("kind") in ("payload", "lp"):
                 ticket = secrets.token_urlsafe(12)
                 with _SESSIONS_LOCK:
                     _purge_sessions()
-                    _SESSIONS[ticket] = (tmp_path, time.time() + SESSION_TTL)
+                    _SESSIONS[ticket] = (tmp_path, time.time() + SESSION_TTL, result["kind"])
                 result["ticket"] = ticket
                 kept = True
             self._json(result)

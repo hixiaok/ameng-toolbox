@@ -371,3 +371,36 @@ def read_path(path: str | Path) -> Metadata:
     with p.open("rb") as f:
         blob = f.read(SCAN_LIMIT)
     return parse(blob)
+
+
+def extract_partition(
+    meta: Metadata, partition: Partition, out: str | Path, *, src: str | Path
+) -> dict:
+    """把 super 里的某个逻辑分区按 extent 切出来（linear 直接拷，zero 补零）。"""
+    bad = [e for e in partition.extents if not (e.is_linear or e.is_zero)]
+    if bad:
+        raise InvalidImage(f"{partition.name} 含有不支持的 extent 类型（target_type={bad[0].target_type}）")
+
+    written = 0
+    try:
+        with open(src, "rb") as fh, open(out, "wb") as dst:
+            for e in partition.extents:
+                size = e.num_sectors * SECTOR_SIZE
+                if e.is_zero:
+                    dst.write(b"\x00" * size)
+                else:
+                    fh.seek(e.byte_offset)
+                    remaining = size
+                    while remaining > 0:
+                        chunk = fh.read(min(remaining, 4 << 20))
+                        if not chunk:
+                            raise InvalidImage(
+                                f"super 数据被截断：{partition.name} 需要读到 {e.byte_offset + size}，文件不够长"
+                            )
+                        dst.write(chunk)
+                        remaining -= len(chunk)
+                written += size
+    except InvalidImage:
+        Path(out).unlink(missing_ok=True)  # 别留下半个镜像骗人
+        raise
+    return {"partition": partition.name, "bytes": written, "output": str(out)}
