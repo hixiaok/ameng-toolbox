@@ -1,6 +1,13 @@
 const TOKEN = window.__IRIS_TOKEN__;
+const EMBED = window.__IRIS_DATA__ || null;   // 单文件快照模式
 
 async function api(path, options = {}) {
+  if (EMBED) {
+    const key = path.split("?")[0];
+    if (EMBED[key] !== undefined) return EMBED[key];
+    if (key === "/api/info" && EMBED["/api/info_error"]) throw new Error(EMBED["/api/info_error"]);
+    throw new Error("这是导出的静态快照：该功能需要本地服务（双击 启动.bat）");
+  }
   const res = await fetch(path, {
     ...options,
     headers: { "X-Iris-Token": TOKEN, ...(options.headers || {}) },
@@ -135,6 +142,14 @@ dz.addEventListener("drop", (e) => {
 async function upload(file) {
   const errBox = $("#image-error");
   const result = $("#image-result");
+
+  if (EMBED) {
+    result.classList.add("hidden");
+    errBox.textContent = "静态快照不能解析新文件。要拖拽分析，请双击 启动.bat 启动本地服务。";
+    errBox.classList.remove("hidden");
+    return;
+  }
+
   errBox.classList.add("hidden");
   $("#image-name").textContent = `${file.name} · ${(file.size / 1048576).toFixed(1)} MB`;
   $("#image-kind").textContent = "分析中…";

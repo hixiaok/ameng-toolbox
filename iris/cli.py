@@ -215,6 +215,15 @@ def cmd_gui(args) -> int:
     return serve(port=args.port, open_browser=not args.no_browser, quiet=args.quiet)
 
 
+def cmd_export(args) -> int:
+    from .web.export import export
+
+    path = export(args.out, image=args.image)
+    print(f"已导出单文件界面：{path}")
+    print("双击即可打开（快照，不能刷新；实时功能请用 iris gui / 启动.bat）")
+    return 0
+
+
 # ---- 解析器 -------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="iris", description="Iris —— Android 设备工具链")
@@ -262,6 +271,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--no-browser", action="store_true", help="不自动打开浏览器")
     sp.add_argument("--quiet", action="store_true", help="不打印访问日志")
     sp.set_defaults(func=cmd_gui)
+
+    sp = sub.add_parser("export", help="导出单文件 HTML 快照（无需服务，双击可看）")
+    sp.add_argument("out", help="输出 html 路径")
+    sp.add_argument("--image", help="顺带把一个镜像的分析结果嵌进快照")
+    sp.set_defaults(func=cmd_export)
 
     sp = sub.add_parser("version", help="显示版本")
     sp.set_defaults(func=cmd_version)
