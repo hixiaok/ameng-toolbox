@@ -132,6 +132,16 @@
   </footer>
 </div>
 
+<div id="boot-error" class="alert hidden" style="margin:12px 16px 0"></div>
+
+<script>
+  window.addEventListener("error", function (e) {
+    var box = document.getElementById("boot-error");
+    if (!box) return;
+    box.classList.remove("hidden");
+    box.textContent = "页面脚本出错，部分交互不可用：" + (e.message || e);
+  });
+</script>
 <script>window.__IRIS_TOKEN__ = "__TOKEN__";</script>
 <input type="file" id="file" hidden>
 <script src="/static/app.js"></script>

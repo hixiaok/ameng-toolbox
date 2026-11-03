@@ -327,9 +327,9 @@ tbody tr:hover { background: var(--panel-2); }
         <div class="group">
           <div class="group-head">
             <span>检查项</span>
-            <span class="group-chips" id="doctor-chips"></span>
+            <span class="group-chips" id="doctor-chips"><span class="chip fail"><i></i>0 失败</span><span class="chip warn"><i></i>3 警告</span><span class="chip ok"><i></i>3 通过</span></span>
           </div>
-          <div class="rows" id="doctor-list"></div>
+          <div class="rows" id="doctor-list"><div class="row ok"><i class="dot"></i><div class="k">python</div><div class="v">3.13.15</div></div><div class="row ok"><i class="dot"></i><div class="k">os</div><div class="v">Windows 10</div></div><div class="row ok"><i class="dot"></i><div class="k">adb</div><div class="v">D:\deepseek\platform-tools\adb.exe | Android Debug Bridge version 1.0.41</div></div><div class="row warn"><i class="dot"></i><div class="k">fastboot</div><div class="v">PATH 中未找到</div><div class="hint">platform-tools 里自带，加入 PATH 即可</div></div><div class="row warn"><i class="dot"></i><div class="k">devices</div><div class="v">没有检测到设备</div><div class="hint">检查 USB 调试、数据线、驱动；Fastboot 模式请用 `iris fastboot` 相关命令</div></div><div class="row warn"><i class="dot"></i><div class="k">windows driver</div><div class="v">驱动问题无法自动检测</div><div class="hint">设备管理器里出现黄色感叹号时装 Google USB Driver 或厂商驱动</div></div></div>
         </div>
       </section>
 
@@ -343,7 +343,7 @@ tbody tr:hover { background: var(--panel-2); }
 
         <div id="device-empty" class="empty">
           <svg><use href="#i-phone"/></svg>
-          <b>没有检测到设备</b>
+          <b>没有处于 device 状态的设备</b>
           <span>连接手机并开启 USB 调试后点「重新探测」</span>
         </div>
 
@@ -370,18 +370,18 @@ tbody tr:hover { background: var(--panel-2); }
           <div class="group-head"><span>镜像文件</span></div>
           <div class="filerow">
             <button class="btn btn-primary" id="pick"><svg class="btn-ico"><use href="#i-folder"/></svg>选择文件…</button>
-            <span class="path" id="file-name">未选择 · 也可以把文件直接拖进窗口</span>
+            <span class="path" id="file-name">demo_super.img</span>
           </div>
         </div>
 
-        <div id="image-result" class="hidden">
+        <div id="image-result">
           <div class="group">
             <div class="group-head">
               <span>分析结果</span>
-              <span class="tag" id="image-kind">-</span>
-              <span class="group-note" id="image-name"></span>
+              <span class="tag" id="image-kind">super 元数据</span>
+              <span class="group-note" id="image-name">demo_super.img</span>
             </div>
-            <div id="image-body"></div>
+            <div id="image-body"><p class="meta">版本 <b>10.2</b> · header <b>256B</b> · 块大小 <b>4096B</b> · 逻辑容量 <b>2.8MiB</b></p><div class="table-wrap"><table><thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th></tr></thead><tbody><tr><td class="mono">system_a</td><td>2.0MiB</td><td style="color:var(--muted)">2</td><td style="color:var(--muted)">0</td></tr><tr><td class="mono">vendor_a</td><td>512.0KiB</td><td style="color:var(--muted)">1</td><td style="color:var(--muted)">0</td></tr><tr><td class="mono">product_a</td><td>256.0KiB</td><td style="color:var(--muted)">1</td><td style="color:var(--muted)">0</td></tr></tbody></table></div></div>
           </div>
         </div>
 
@@ -396,7 +396,7 @@ tbody tr:hover { background: var(--panel-2); }
         </div>
         <div class="group">
           <div class="group-head"><span>软件信息</span></div>
-          <div class="fields" id="about-fields"></div>
+          <div class="fields" id="about-fields"><div class="field"><em>版本</em><b>v0.2.0</b></div><div class="field"><em>许可证</em><b>GPL-3.0</b></div><div class="field"><em>运行时</em><b>Python 标准库，无第三方依赖</b></div><div class="field"><em>数据</em><b>全程本地处理，不上传</b></div><div class="field"><em>第三方二进制</em><b>不打包</b></div><div class="field"><em>前端</em><b>单页 HTML/CSS/JS + http.server</b></div></div>
         </div>
       </section>
     </main>
@@ -412,6 +412,16 @@ tbody tr:hover { background: var(--panel-2); }
   </footer>
 </div>
 
+<div id="boot-error" class="alert hidden" style="margin:12px 16px 0"></div>
+
+<script>
+  window.addEventListener("error", function (e) {
+    var box = document.getElementById("boot-error");
+    if (!box) return;
+    box.classList.remove("hidden");
+    box.textContent = "页面脚本出错，部分交互不可用：" + (e.message || e);
+  });
+</script>
 <script>window.__IRIS_TOKEN__ = "snapshot";</script>
 <input type="file" id="file" hidden>
 <script>
