@@ -182,10 +182,66 @@ async function upload(file) {
   }
 }
 
+async function extractPart(ticket, part, btn) {
+  if (!ticket) {
+    alert("当前是导出快照，不能提取。请用 Iris.bat 启动本地服务。");
+    return;
+  }
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "提取中…";
+  try {
+    const res = await fetch(
+      `/api/extract?ticket=${encodeURIComponent(ticket)}&part=${encodeURIComponent(part)}`,
+      { headers: { "X-Iris-Token": TOKEN } },
+    );
+    if (!res.ok) throw new Error((await res.text()).slice(0, 200) || `HTTP ${res.status}`);
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${part}.img`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    btn.textContent = "已下载";
+  } catch (e) {
+    btn.textContent = label;
+    btn.disabled = false;
+    alert("提取失败：" + e.message);
+    return;
+  }
+  setTimeout(() => {
+    btn.textContent = label;
+    btn.disabled = false;
+  }, 2500);
+}
+
 function renderImage(data) {
   $("#image-kind").textContent =
-    { gpt: "GPT 分区表", lp: "super 元数据", sparse: "sparse 镜像" }[data.kind] || data.kind;
+    { gpt: "GPT 分区表", lp: "super 元数据", sparse: "sparse 镜像", payload: "payload.bin" }[data.kind] || data.kind;
   const body = $("#image-body");
+
+  if (data.kind === "payload") {
+    const p = data.payload;
+    const rows = p.partitions.map((x) => `
+      <tr><td class="mono">${esc(x.name)}</td><td>${human(x.size_bytes)}</td>
+          <td style="color:var(--muted)">${x.operation_count}</td>
+          <td style="color:var(--muted)">${esc(x.operations.join(", "))}</td>
+          <td>${x.extractable
+            ? `<button class="btn" data-part="${esc(x.name)}">提取</button>`
+            : '<span style="color:var(--dim)">增量</span>'}</td></tr>`).join("");
+    body.innerHTML = `
+      <p class="meta">payload 版本 <b>${p.version}</b> · 块 <b>${p.block_size}B</b> ·
+         <b>${p.partition_count}</b> 个分区</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>分区</th><th>解包后大小</th><th>操作数</th><th>类型</th><th>操作</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+    body.querySelectorAll("button[data-part]").forEach((btn) => {
+      btn.onclick = () => extractPart(data.ticket, btn.dataset.part, btn);
+    });
+    return;
+  }
 
   if (data.kind === "gpt") {
     const t = data.table;

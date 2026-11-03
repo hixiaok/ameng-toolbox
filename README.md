@@ -17,9 +17,10 @@
 | `iris gpt <img>` | 离线解析 GPT：主/备表、CRC 校验、分区起止与大小 |
 | `iris super <img>` | 离线解析 super：LP geometry/header、分区与 extent 布局、checksum 告警 |
 | `iris sparse <img>` | 识别 sparse 镜像，`--unpack` 展开为 raw |
-| `iris gui` | 本地 Web 界面：环境自检 / 设备画像 / 镜像拖放分析 |
+| `iris payload <bin>` | 解析 OTA payload.bin，`--extract boot` 直接还原分区镜像 |
+| `iris gui` | 本地 Web 界面：环境自检 / 设备画像 / 镜像拖放分析 + 分区提取 |
 
-未实现（见路线图）：payload 解包、super 合并、AVB 签名、fastboot 刷写、EDL。
+未实现（见路线图）：super 合并、AVB 签名、fastboot 刷写、EDL。
 
 ## 快速开始
 

@@ -15,6 +15,7 @@ import secrets
 import struct
 import tempfile
 import threading
+import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -25,6 +26,7 @@ from ..core import diag
 from ..core.adb import Adb
 from ..core.errors import IrisError
 from ..core.image import lp as lp_mod
+from ..core.image import payload as payload_mod
 from ..core.image import sparse as sparse_mod
 from ..core.partition import gpt as gpt_mod
 from ..core.profile import load_cached, probe, save
@@ -32,6 +34,22 @@ from ..core.profile import load_cached, probe, save
 BASE = Path(__file__).parent
 STATIC = BASE / "static"
 MAX_UPLOAD = 16 * 1024 * 1024 * 1024  # 单文件上限 16GB
+
+# 上传的 payload 保留一段时间，供「提取分区」使用
+SESSION_TTL = 30 * 60
+_SESSIONS: dict[str, tuple[Path, float]] = {}
+_SESSIONS_LOCK = threading.Lock()
+
+
+def _purge_sessions() -> None:
+    now = time.time()
+    for key, (path, expire) in list(_SESSIONS.items()):
+        if expire < now:
+            _SESSIONS.pop(key, None)
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -49,6 +67,9 @@ def detect_and_parse(path: Path) -> dict:
     size = path.stat().st_size
     with path.open("rb") as f:
         head = f.read(8192)
+
+    if payload_mod.is_payload(head):
+        return {"kind": "payload", "payload": payload_mod.parse(path).to_dict()}
 
     if len(head) >= 520 and (head[512:520] == b"EFI PART" or (len(head) >= 4104 and head[4096:4104] == b"EFI PART")):
         return {"kind": "gpt", "table": gpt_mod.read_path(path).to_dict()}
@@ -143,6 +164,51 @@ class Handler(BaseHTTPRequestHandler):
         ctype = CONTENT_TYPES.get(target.suffix, "application/octet-stream")
         self._send(200, target.read_bytes(), ctype)
 
+    def _send_file(self, path: Path, filename: str) -> None:
+        size = path.stat().st_size
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Length", str(size))
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        with path.open("rb") as f:
+            while chunk := f.read(1024 * 1024):
+                self.wfile.write(chunk)
+
+    def _api_extract(self, query: dict) -> None:
+        ticket = (query.get("ticket") or [""])[0]
+        part_name = (query.get("part") or [""])[0]
+        if not ticket or not part_name:
+            self._fail(400, "缺少 ticket 或 part 参数")
+            return
+
+        with _SESSIONS_LOCK:
+            _purge_sessions()
+            entry = _SESSIONS.get(ticket)
+        if entry is None:
+            self._fail(410, "上传已过期（30 分钟），请重新选择文件")
+            return
+
+        src = entry[0]
+        pay = payload_mod.parse(src)
+        part = pay.find(part_name)
+        if part is None:
+            self._fail(404, f"分区 {part_name} 不存在")
+            return
+
+        tmp = tempfile.NamedTemporaryFile(prefix="iris-extract-", suffix=".img", delete=False)
+        tmp.close()
+        out = Path(tmp.name)
+        try:
+            payload_mod.extract(pay, part, out, src=src)
+            self._send_file(out, f"{part_name}.img")
+        finally:
+            try:
+                out.unlink(missing_ok=True)
+            except OSError:
+                pass
+
     def _api_get(self, path: str, query: dict) -> None:
         try:
             if path == "/api/doctor":
@@ -172,6 +238,10 @@ class Handler(BaseHTTPRequestHandler):
                     self._fail(400, "缺少 path 参数")
                     return
                 self._json(detect_and_parse(Path(unquote(raw))))
+                return
+
+            if path == "/api/extract":
+                self._api_extract(query)
                 return
 
             self._fail(404, "unknown endpoint")
@@ -209,6 +279,7 @@ class Handler(BaseHTTPRequestHandler):
 
         tmp = tempfile.NamedTemporaryFile(prefix="iris-upload-", suffix=suffix, delete=False)
         tmp_path = Path(tmp.name)
+        kept = False
         try:
             remaining = length
             while remaining > 0:
@@ -223,16 +294,27 @@ class Handler(BaseHTTPRequestHandler):
                 self._fail(400, "上传不完整")
                 return
 
-            self._json(detect_and_parse(tmp_path))
+            result = detect_and_parse(tmp_path)
+
+            # payload 要留着供后续提取分区，发一个票据；其它格式解析完即删
+            if result.get("kind") == "payload":
+                ticket = secrets.token_urlsafe(12)
+                with _SESSIONS_LOCK:
+                    _purge_sessions()
+                    _SESSIONS[ticket] = (tmp_path, time.time() + SESSION_TTL)
+                result["ticket"] = ticket
+                kept = True
+            self._json(result)
         except IrisError as exc:
             self._fail(400, str(exc), exc.hint or "")
         except Exception as exc:  # noqa: BLE001
             self._fail(500, f"内部错误：{type(exc).__name__}: {exc}")
         finally:
-            try:
-                tmp_path.unlink(missing_ok=True)
-            except OSError:
-                pass
+            if not kept:
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
 
 
 class Server(ThreadingHTTPServer):

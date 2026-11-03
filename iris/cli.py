@@ -17,6 +17,7 @@ from .core import diag
 from .core.adb import Adb
 from .core.errors import IrisError
 from .core.image import lp as lp_mod
+from .core.image import payload as payload_mod
 from .core.image import sparse as sparse_mod
 from .core.partition import gpt as gpt_mod
 from .core.profile import load_cached, probe, save
@@ -224,6 +225,32 @@ def cmd_export(args) -> int:
     return 0
 
 
+def cmd_payload(args) -> int:
+    pay = payload_mod.parse(args.image)
+
+    if args.extract:
+        part = pay.find(args.extract)
+        if part is None:
+            names = ", ".join(p.name for p in pay.partitions[:12])
+            raise IrisError(f"分区 {args.extract} 不存在", hint=f"可选：{names}")
+        out = args.out or f"{part.name}.img"
+        stats = payload_mod.extract(pay, part, out, src=args.image)
+        print(f"已提取 {part.name} → {out}（{lp_mod.human_size(stats['bytes'])}）")
+        return 0
+
+    if args.json:
+        print(json.dumps(pay.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+
+    print(f"文件  : {Path(args.image)}")
+    print(f"版本  : {pay.version} · 块大小 {pay.block_size}B · {len(pay.partitions)} 个分区\n")
+    rows = [[p.name, lp_mod.human_size(p.blocks * pay.block_size), len(p.operations),
+             ",".join(sorted({op.type_name for op in p.operations}))] for p in pay.partitions]
+    print(_table(rows, ["分区", "解包后大小", "操作数", "类型"]))
+    print("\n提取某个分区：iris payload <payload.bin> --extract boot --out boot.img")
+    return 0
+
+
 # ---- 解析器 -------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="iris", description="Iris —— Android 设备工具链")
@@ -265,6 +292,13 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--json", action="store_true", help="输出 JSON")
     sp.add_argument("--unpack", metavar="OUT", help="展开到指定 raw 文件")
     sp.set_defaults(func=cmd_sparse)
+
+    sp = sub.add_parser("payload", help="解析/提取 OTA payload.bin 里的分区")
+    sp.add_argument("image", help="payload.bin 文件")
+    sp.add_argument("--json", action="store_true", help="输出 JSON")
+    sp.add_argument("--extract", metavar="PART", help="提取指定分区")
+    sp.add_argument("--out", metavar="FILE", help="提取输出路径")
+    sp.set_defaults(func=cmd_payload)
 
     sp = sub.add_parser("gui", help="启动本地 Web 界面")
     sp.add_argument("--port", type=int, default=0, help="端口（默认随机）")

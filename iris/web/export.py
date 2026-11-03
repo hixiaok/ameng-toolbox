@@ -142,6 +142,25 @@ def render_image(analysis: dict) -> str:
         )
         return meta + table
 
+    if kind == "payload":
+        p = analysis["payload"]
+        rows = "".join(
+            f'<tr><td class="mono">{_e(x["name"])}</td><td>{_human(x["size_bytes"])}</td>'
+            f'<td style="color:var(--muted)">{x["operation_count"]}</td>'
+            f'<td style="color:var(--muted)">{_e(", ".join(x["operations"]))}</td></tr>'
+            for x in p["partitions"]
+        )
+        meta = (
+            f'<p class="meta">payload 版本 <b>{p["version"]}</b> · 块 <b>{p["block_size"]}B</b> · '
+            f'<b>{p["partition_count"]}</b> 个分区</p>'
+        )
+        table = (
+            '<div class="table-wrap"><table><thead><tr><th>分区</th><th>解包后大小</th>'
+            '<th>操作数</th><th>类型</th></tr></thead><tbody>'
+            f"{rows}</tbody></table></div>"
+        )
+        return meta + table
+
     if kind == "sparse":
         s = analysis["info"]
         stats = "，".join(f"{k} ×{v}" for k, v in s["chunk_stats"].items())
@@ -224,7 +243,7 @@ def build_snapshot(image: str | None = None, version: str = "0.2.0") -> str:
         page = page.replace('<div id="image-result" class="hidden">', '<div id="image-result">')
         page = page.replace('<span class="tag" id="image-kind">-</span>',
                             f'<span class="tag" id="image-kind">'
-                            f'{ {"gpt": "GPT 分区表", "lp": "super 元数据", "sparse": "sparse 镜像"}.get(analysis["kind"], analysis["kind"]) }</span>')
+                            f'{ {"gpt": "GPT 分区表", "lp": "super 元数据", "sparse": "sparse 镜像", "payload": "payload.bin"}.get(analysis["kind"], analysis["kind"]) }</span>')
         page = page.replace('<span class="group-note" id="image-name"></span>',
                             f'<span class="group-note" id="image-name">{_e(name)}</span>')
         page = page.replace('<div id="image-body"></div>',
