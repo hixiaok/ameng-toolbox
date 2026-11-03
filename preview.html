@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iris · Android Toolchain</title>
+<style>
+:root {
+  --bg: #f6f7f8;
+  --panel: #ffffff;
+  --panel-2: #fafbfb;
+  --line: #ebedef;
+  --line-2: #dcdfe3;
+  --text: #1f2328;
+  --text-2: #3d434b;
+  --muted: #6b7280;
+  --dim: #9aa1a9;
+  --accent: #199e63;
+  --accent-hover: #148a55;
+  --accent-weak: #eaf7f0;
+  --accent-line: #c9e9d8;
+  --ok: #199e63;
+  --warn: #b7791f;
+  --fail: #c0392b;
+  --mono: "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+code, .mono { font-family: var(--mono); font-size: .94em; }
+.hidden { display: none !important; }
+
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ---------------- 标题栏 ---------------- */
+.titlebar {
+  height: 48px; flex: none;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.tb-brand { display: flex; align-items: center; gap: 9px; }
+.tb-logo {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: var(--accent); color: #fff;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 700;
+}
+.tb-name { font-size: 14px; font-weight: 700; letter-spacing: .01em; }
+.tb-sub { font-size: 11.5px; color: var(--dim); }
+.tb-right { margin-left: auto; }
+.tb-chip {
+  height: 22px; padding: 0 9px; display: inline-flex; align-items: center;
+  border-radius: 11px; font-size: 11.5px; color: var(--muted);
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+
+/* ---------------- 主体 ---------------- */
+.body { flex: 1; display: flex; min-height: 0; }
+
+.side {
+  width: 180px; flex: none;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 10px 10px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+
+.nav {
+  display: flex; align-items: center; gap: 9px;
+  height: 38px; padding: 0 11px;
+  border: 0; border-radius: 7px;
+  background: transparent; color: var(--text-2);
+  font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.nav svg {
+  width: 16px; height: 16px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+  color: var(--muted);
+}
+.nav:hover { background: #f3f5f4; }
+.nav.active { background: var(--accent-weak); color: var(--accent-hover); font-weight: 600; }
+.nav.active svg { color: var(--accent); }
+
+.content { flex: 1; overflow-y: auto; padding: 20px 24px 32px; }
+
+/* ---------------- 页头 ---------------- */
+.page-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+h1 { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+.page-head p { font-size: 12.5px; color: var(--muted); }
+.page-head .btn { margin-left: auto; }
+
+/* ---------------- 分组框 ---------------- */
+.group {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.group-head {
+  min-height: 38px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px; font-weight: 600; color: var(--text-2);
+}
+.group-head > span:first-child { flex: none; }
+.group-note { font-size: 12px; font-weight: 400; color: var(--muted); }
+.group-chips { margin-left: auto; display: flex; gap: 6px; }
+
+/* 按钮 */
+.btn {
+  height: 29px; padding: 0 13px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line-2);
+  background: var(--panel); color: var(--text-2);
+  font: inherit; font-size: 12.5px;
+  transition: background .12s, border-color .12s, color .12s, box-shadow .12s;
+}
+.btn:hover { background: #f6f8f7; border-color: #c8ccd2; }
+.btn:active { background: #eff2f0; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  box-shadow: 0 1px 2px rgba(25, 158, 99, .28);
+}
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+.btn-ico {
+  width: 14px; height: 14px; fill: none; stroke: currentColor;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* ---------------- 检查项 ---------------- */
+.chip {
+  height: 21px; padding: 0 9px; display: inline-flex; align-items: center; gap: 5px;
+  border-radius: 11px; font-size: 11.5px; font-weight: 500;
+  border: 1px solid var(--line); background: var(--panel);
+  color: var(--muted);
+}
+.chip i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.chip.ok { color: var(--ok); border-color: #cfeadd; background: #f3fbf7; }
+.chip.warn { color: var(--warn); border-color: #efe0c4; background: #fdf9f0; }
+.chip.fail { color: var(--fail); border-color: #f0d2ce; background: #fdf3f2; }
+
+.rows { display: block; }
+.row {
+  display: grid;
+  grid-template-columns: 10px 118px 1fr;
+  gap: 10px; align-items: baseline;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--panel-2); }
+.row .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); margin-top: 5px; }
+.row.ok .dot { background: var(--ok); }
+.row.warn .dot { background: var(--warn); }
+.row.fail .dot { background: var(--fail); }
+.row .k { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.row .v { font-family: var(--mono); font-size: 11.5px; color: var(--muted); word-break: break-all; }
+.row .hint { grid-column: 2 / 4; margin-top: 2px; font-size: 11.5px; color: var(--warn); }
+
+/* ---------------- 字段 ---------------- */
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.field {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  min-width: 0;
+}
+.field em {
+  flex: none; width: 72px;
+  font-style: normal; font-size: 12px; color: var(--muted);
+}
+.field b {
+  font-size: 12.5px; font-weight: 600; color: var(--text);
+  word-break: break-all; font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- 表格 ---------------- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: 9px 14px; text-align: left;
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+td {
+  padding: 9px 14px; font-size: 12.5px; color: var(--text-2);
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--panel-2); }
+
+/* ---------------- 文件行 / 空态 ---------------- */
+.filerow { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+.path { font-family: var(--mono); font-size: 12px; color: var(--muted); word-break: break-all; }
+
+.empty {
+  background: var(--panel);
+  border: 1px dashed var(--line-2);
+  border-radius: 8px;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+.empty svg {
+  width: 34px; height: 34px; margin-bottom: 10px;
+  fill: none; stroke: var(--dim); stroke-width: 1.5;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.empty b { display: block; font-size: 13.5px; color: var(--text-2); }
+.empty span { display: block; margin-top: 4px; font-size: 12px; color: var(--dim); }
+
+.tag {
+  height: 21px; padding: 0 9px; display: inline-flex; align-items: center;
+  border-radius: 11px; font-size: 11.5px; font-weight: 600;
+  color: var(--accent-hover); background: var(--accent-weak);
+  border: 1px solid var(--accent-line);
+}
+
+.meta { padding: 10px 14px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); }
+.meta b { color: var(--text-2); font-weight: 600; }
+
+.alert {
+  padding: 10px 14px; border-radius: 8px; font-size: 12.5px; white-space: pre-wrap;
+  background: #fdf3f2; border: 1px solid #f0d2ce; color: var(--fail);
+}
+
+/* ---------------- 状态栏 ---------------- */
+.statusbar {
+  height: 32px; flex: none;
+  display: flex; align-items: center; gap: 18px;
+  padding: 0 14px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--muted);
+}
+.sb { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.sb b { color: var(--text-2); font-weight: 600; }
+.sb-grow { flex: 1; }
+.sb-dim { color: var(--dim); }
+.led { width: 7px; height: 7px; border-radius: 50%; background: #c8ccd2; }
+.led.on { background: var(--ok); box-shadow: 0 0 0 3px rgba(25, 158, 99, .13); }
+
+/* ---------------- 滚动条 ---------------- */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-thumb {
+  background: #d4d8dd; border: 3px solid transparent;
+  background-clip: content-box; border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover { background: #bfc4cb; background-clip: content-box; }
+
+@media (max-width: 780px) {
+  .side { width: 56px; padding: 8px 6px; }
+  .nav { justify-content: center; padding: 0; }
+  .nav span { display: none; }
+  .content { padding: 14px 14px 24px; }
+  .row { grid-template-columns: 10px 1fr; }
+  .row .v { grid-column: 2; }
+}
+
+</style>
+<script>window.__IRIS_DATA__ = {"/api/doctor": {"platform": "Windows-10-10.0.19045-SP0", "python": "3.13.15", "checks": [{"name": "python", "status": "ok", "detail": "3.13.15", "hint": ""}, {"name": "os", "status": "ok", "detail": "Windows 10", "hint": ""}, {"name": "adb", "status": "ok", "detail": "D:\\deepseek\\platform-tools\\adb.exe | Android Debug Bridge version 1.0.41", "hint": ""}, {"name": "fastboot", "status": "warn", "detail": "PATH 中未找到", "hint": "platform-tools 里自带，加入 PATH 即可"}, {"name": "devices", "status": "warn", "detail": "没有检测到设备", "hint": "检查 USB 调试、数据线、驱动；Fastboot 模式请用 `iris fastboot` 相关命令"}, {"name": "windows driver", "status": "warn", "detail": "驱动问题无法自动检测", "hint": "设备管理器里出现黄色感叹号时装 Google USB Driver 或厂商驱动"}]}, "/api/info_error": "没有处于 device 状态的设备", "/api/analyze": {"kind": "payload", "payload": {"version": 2, "block_size": 4096, "data_start": 144, "partition_count": 2, "partitions": [{"name": "boot", "size_bytes": 8192, "operation_count": 1, "operations": ["REPLACE"], "extractable": true}, {"name": "system", "size_bytes": 12288, "operation_count": 1, "operations": ["REPLACE"], "extractable": true}]}}};</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M13.4 10.6 17 7"/><path d="M4.5 18a9 9 0 1 1 15 0"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 8.5 4.5L12 12 3.5 7.5 12 3Z"/><path d="m4 12 8 4.3 8-4.3"/><path d="m4 16.5 8 4.3 8-4.3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.9"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2.5h8A1.5 1.5 0 0 1 20.5 10v7.5A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5Z"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="titlebar">
+    <div class="tb-brand">
+      <span class="tb-logo">I</span>
+      <span class="tb-name">Iris</span>
+      <span class="tb-sub">Android Toolchain</span>
+    </div>
+    <div class="tb-right">
+      <span class="tb-chip" id="tb-version">v0.2.0</span>
+    </div>
+  </header>
+
+  <div class="body">
+    <nav class="side">
+      <button class="nav active" data-view="doctor"><svg><use href="#i-gauge"/></svg><span>环境自检</span></button>
+      <button class="nav" data-view="device"><svg><use href="#i-phone"/></svg><span>设备</span></button>
+      <button class="nav" data-view="image"><svg><use href="#i-layers"/></svg><span>镜像分析</span></button>
+      <button class="nav" data-view="about"><svg><use href="#i-info"/></svg><span>关于</span></button>
+    </nav>
+
+    <main class="content">
+      <!-- 环境自检 -->
+      <section class="view active" id="view-doctor">
+        <div class="page-head">
+          <h1>环境自检</h1>
+          <p>检查 adb、驱动与设备授权状态</p>
+          <button class="btn" id="btn-doctor">重新检测</button>
+        </div>
+
+        <div class="group">
+          <div class="group-head">
+            <span>检查项</span>
+            <span class="group-chips" id="doctor-chips"><span class="chip fail"><i></i>0 失败</span><span class="chip warn"><i></i>3 警告</span><span class="chip ok"><i></i>3 通过</span></span>
+          </div>
+          <div class="rows" id="doctor-list"><div class="row ok"><i class="dot"></i><div class="k">python</div><div class="v">3.13.15</div></div><div class="row ok"><i class="dot"></i><div class="k">os</div><div class="v">Windows 10</div></div><div class="row ok"><i class="dot"></i><div class="k">adb</div><div class="v">D:\deepseek\platform-tools\adb.exe | Android Debug Bridge version 1.0.41</div></div><div class="row warn"><i class="dot"></i><div class="k">fastboot</div><div class="v">PATH 中未找到</div><div class="hint">platform-tools 里自带，加入 PATH 即可</div></div><div class="row warn"><i class="dot"></i><div class="k">devices</div><div class="v">没有检测到设备</div><div class="hint">检查 USB 调试、数据线、驱动；Fastboot 模式请用 `iris fastboot` 相关命令</div></div><div class="row warn"><i class="dot"></i><div class="k">windows driver</div><div class="v">驱动问题无法自动检测</div><div class="hint">设备管理器里出现黄色感叹号时装 Google USB Driver 或厂商驱动</div></div></div>
+        </div>
+      </section>
+
+      <!-- 设备 -->
+      <section class="view" id="view-device">
+        <div class="page-head">
+          <h1>设备</h1>
+          <p>一次探测，后续功能只读这份画像</p>
+          <button class="btn" id="btn-refresh">重新探测</button>
+        </div>
+
+        <div id="device-empty" class="empty">
+          <svg><use href="#i-phone"/></svg>
+          <b>没有处于 device 状态的设备</b>
+          <span>连接手机并开启 USB 调试后点「重新探测」</span>
+        </div>
+
+        <div id="device-content" class="hidden">
+          <div class="group">
+            <div class="group-head"><span>基本信息</span></div>
+            <div class="fields" id="device-fields"></div>
+          </div>
+          <div class="group">
+            <div class="group-head"><span>探测明细</span></div>
+            <div class="table-wrap" id="probe-table"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 镜像分析 -->
+      <section class="view" id="view-image">
+        <div class="page-head">
+          <h1>镜像分析</h1>
+          <p>自动识别 GPT 分区表 / super 动态分区 / sparse 稀疏镜像</p>
+        </div>
+
+        <div class="group">
+          <div class="group-head"><span>镜像文件</span></div>
+          <div class="filerow">
+            <button class="btn btn-primary" id="pick"><svg class="btn-ico"><use href="#i-folder"/></svg>选择文件…</button>
+            <span class="path" id="file-name">demo_payload.bin</span>
+          </div>
+        </div>
+
+        <div id="image-result">
+          <div class="group">
+            <div class="group-head">
+              <span>分析结果</span>
+              <span class="tag" id="image-kind">payload.bin</span>
+              <span class="group-note" id="image-name">demo_payload.bin</span>
+            </div>
+            <div id="image-body"><p class="meta">payload 版本 <b>2</b> · 块 <b>4096B</b> · <b>2</b> 个分区</p><div class="table-wrap"><table><thead><tr><th>分区</th><th>解包后大小</th><th>操作数</th><th>类型</th></tr></thead><tbody><tr><td class="mono">boot</td><td>8.0KiB</td><td style="color:var(--muted)">1</td><td style="color:var(--muted)">REPLACE</td></tr><tr><td class="mono">system</td><td>12.0KiB</td><td style="color:var(--muted)">1</td><td style="color:var(--muted)">REPLACE</td></tr></tbody></table></div></div>
+          </div>
+        </div>
+
+        <div id="image-error" class="alert hidden"></div>
+      </section>
+
+      <!-- 关于 -->
+      <section class="view" id="view-about">
+        <div class="page-head">
+          <h1>关于</h1>
+          <p>核心库与界面完全分离，CLI 和这个页面用的是同一套代码</p>
+        </div>
+        <div class="group">
+          <div class="group-head"><span>软件信息</span></div>
+          <div class="fields" id="about-fields"><div class="field"><em>版本</em><b>v0.2.0</b></div><div class="field"><em>许可证</em><b>GPL-3.0</b></div><div class="field"><em>运行时</em><b>Python 标准库，无第三方依赖</b></div><div class="field"><em>数据</em><b>全程本地处理，不上传</b></div><div class="field"><em>第三方二进制</em><b>不打包</b></div><div class="field"><em>前端</em><b>单页 HTML/CSS/JS + http.server</b></div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <span class="sb"><i class="led" id="sb-led"></i><span id="sb-device">未连接</span></span>
+    <span class="sb">ADB <b id="sb-adb">—</b></span>
+    <span class="sb">机型 <b id="sb-model">—</b></span>
+    <span class="sb">ROOT <b id="sb-root">—</b></span>
+    <span class="sb-grow"></span>
+    <span class="sb sb-dim" id="sb-note">本地服务 · 数据不外传</span>
+  </footer>
+</div>
+
+<div id="boot-error" class="alert hidden" style="margin:12px 16px 0"></div>
+
+<script>
+  window.addEventListener("error", function (e) {
+    var box = document.getElementById("boot-error");
+    if (!box) return;
+    box.classList.remove("hidden");
+    box.textContent = "页面脚本出错，部分交互不可用：" + (e.message || e);
+  });
+</script>
+<script>window.__IRIS_TOKEN__ = "snapshot";</script>
+<input type="file" id="file" hidden>
+<script>
+const TOKEN = window.__IRIS_TOKEN__;
+const EMBED = window.__IRIS_DATA__ || null;   // 单文件快照模式
+
+async function api(path, options = {}) {
+  if (EMBED) {
+    const key = path.split("?")[0];
+    if (EMBED[key] !== undefined) return EMBED[key];
+    if (key === "/api/info" && EMBED["/api/info_error"]) throw new Error(EMBED["/api/info_error"]);
+    throw new Error("这是导出的静态快照：该功能需要本地服务（双击 启动.bat）");
+  }
+  const res = await fetch(path, {
+    ...options,
+    headers: { "X-Iris-Token": TOKEN, ...(options.headers || {}) },
+  });
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = { error: text }; }
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+const $ = (sel) => document.querySelector(sel);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function human(n) {
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let v = n, i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return (i === 0 ? v : v.toFixed(1)) + units[i];
+}
+
+/* ---------- 导航 ---------- */
+document.querySelectorAll(".nav").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+    btn.classList.add("active");
+    $("#view-" + btn.dataset.view).classList.add("active");
+    if (btn.dataset.view === "device") loadDevice(false);
+  });
+});
+
+/* ---------- 状态栏 ---------- */
+function setStatus({ connected, model, root, adb }) {
+  $("#sb-led").classList.toggle("on", !!connected);
+  $("#sb-device").textContent = connected ? "已连接" : "未连接";
+  if (model !== undefined) $("#sb-model").textContent = model || "—";
+  if (root !== undefined) $("#sb-root").textContent = root ? "已 ROOT" : "未 ROOT";
+  if (adb !== undefined) $("#sb-adb").textContent = adb || "—";
+}
+
+/* ---------- 环境自检 ---------- */
+async function loadDoctor() {
+  const list = $("#doctor-list");
+  const chips = $("#doctor-chips");
+  list.innerHTML = '<div class="row"><i class="dot"></i><div class="k">检测中</div><div class="v"></div></div>';
+  chips.innerHTML = "";
+
+  try {
+    const data = await api("/api/doctor");
+    const n = (s) => data.checks.filter((c) => c.status === s).length;
+
+    chips.innerHTML = [
+      `<span class="chip fail"><i></i>${n("fail")} 失败</span>`,
+      `<span class="chip warn"><i></i>${n("warn")} 警告</span>`,
+      `<span class="chip ok"><i></i>${n("ok")} 通过</span>`,
+    ].join("");
+
+    list.innerHTML = data.checks.map((c) => `
+      <div class="row ${c.status}">
+        <i class="dot"></i>
+        <div class="k">${esc(c.name)}</div>
+        <div class="v">${esc(c.detail)}</div>
+        ${c.hint && c.status !== "ok" ? `<div class="hint">${esc(c.hint)}</div>` : ""}
+      </div>`).join("");
+
+    const adbCheck = data.checks.find((c) => c.name === "adb");
+    const m = adbCheck && adbCheck.detail.match(/version\s+([\d.]+)/i);
+    setStatus({
+      connected: data.checks.some((c) => c.name.startsWith("device ") && c.status === "ok"),
+      adb: m ? m[1] : (adbCheck && adbCheck.status === "ok" ? "已就绪" : "未找到"),
+    });
+  } catch (e) {
+    chips.innerHTML = '<span class="chip fail"><i></i>检测失败</span>';
+    list.innerHTML = `<div class="row fail"><i class="dot"></i><div class="k">错误</div>
+      <div class="v">${esc(e.message)}</div></div>`;
+  }
+}
+
+/* ---------- 设备 ---------- */
+const FIELDS = [
+  ["序列号", (p) => p.serial],
+  ["机型", (p) => `${p.brand || ""} ${p.model || ""}`.trim()],
+  ["代号", (p) => p.codename],
+  ["SoC", (p) => `${p.soc_manufacturer || ""} ${p.soc_model || ""}`.trim()],
+  ["系统", (p) => `Android ${p.android_release || "?"} · SDK ${p.sdk || "?"}`],
+  ["架构", (p) => p.abi],
+  ["安全补丁", (p) => p.security_patch],
+  ["槽位", (p) => (p.ab_update ? `A/B（${p.slot_suffix || "?"}）` : "单槽位")],
+  ["ROOT", (p) => (p.root ? "是" : "否")],
+  ["by-name 根", (p) => p.by_name_root || "未探测到"],
+  ["块设备", (p) => p.block_device || "未知"],
+  ["已知分区", (p) => (p.partitions ? `${Object.keys(p.partitions).length} 个` : "0")],
+];
+
+async function loadDevice(refresh) {
+  const empty = $("#device-empty");
+  const content = $("#device-content");
+  try {
+    const p = await api("/api/info" + (refresh ? "?refresh=1" : ""));
+    empty.classList.add("hidden");
+    content.classList.remove("hidden");
+
+    $("#device-fields").innerHTML = FIELDS.map(([label, get]) =>
+      `<div class="field"><em>${esc(label)}</em><b>${esc(get(p) || "—")}</b></div>`).join("");
+
+    const rows = (p.probes || []).map((pr) => `
+      <tr><td class="mono">${esc(pr.name)}</td>
+          <td>${pr.ok ? '<span style="color:var(--ok)">✓</span>' : '<span style="color:var(--fail)">✗</span>'}</td>
+          <td class="mono" style="color:var(--muted)">${esc(pr.evidence)}</td></tr>`).join("");
+
+    $("#probe-table").innerHTML = `
+      <table><thead><tr><th>探测项</th><th>结果</th><th>证据</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+
+    setStatus({ connected: true, model: p.model || "—", root: !!p.root });
+  } catch (e) {
+    setStatus({ connected: false, model: "—", root: "—" });
+    content.classList.add("hidden");
+    empty.classList.remove("hidden");
+    empty.querySelector("b").textContent = e.message;
+  }
+}
+
+/* ---------- 镜像分析 ---------- */
+const fileInput = $("#file");
+
+$("#pick").addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", () => fileInput.files[0] && upload(fileInput.files[0]));
+
+// 整窗口拖放
+["dragenter", "dragover"].forEach((ev) => window.addEventListener(ev, (e) => e.preventDefault()));
+window.addEventListener("drop", (e) => {
+  e.preventDefault();
+  const f = e.dataTransfer && e.dataTransfer.files[0];
+  if (f) {
+    document.querySelector('.nav[data-view="image"]').click();
+    upload(f);
+  }
+});
+
+async function upload(file) {
+  const errBox = $("#image-error");
+  const result = $("#image-result");
+
+  $("#file-name").textContent = `${file.name} · ${(file.size / 1048576).toFixed(1)} MB`;
+
+  if (EMBED) {
+    result.classList.add("hidden");
+    errBox.textContent = "静态快照不能解析新文件。要拖拽分析，请双击 启动.bat 启动本地服务。";
+    errBox.classList.remove("hidden");
+    return;
+  }
+
+  errBox.classList.add("hidden");
+  $("#image-kind").textContent = "分析中…";
+  $("#image-name").textContent = file.name;
+  result.classList.remove("hidden");
+  $("#image-body").innerHTML = "";
+
+  try {
+    const data = await api("/api/upload?name=" + encodeURIComponent(file.name), {
+      method: "POST",
+      body: file,
+      headers: { "Content-Type": "application/octet-stream" },
+    });
+    renderImage(data);
+  } catch (e) {
+    $("#image-kind").textContent = "无法识别";
+    errBox.textContent = e.message;
+    errBox.classList.remove("hidden");
+  }
+}
+
+async function extractPart(ticket, part, btn) {
+  if (!ticket) {
+    alert("当前是导出快照，不能提取。请用 Iris.bat 启动本地服务。");
+    return;
+  }
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "提取中…";
+  try {
+    const res = await fetch(
+      `/api/extract?ticket=${encodeURIComponent(ticket)}&part=${encodeURIComponent(part)}`,
+      { headers: { "X-Iris-Token": TOKEN } },
+    );
+    if (!res.ok) throw new Error((await res.text()).slice(0, 200) || `HTTP ${res.status}`);
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${part}.img`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    btn.textContent = "已下载";
+  } catch (e) {
+    btn.textContent = label;
+    btn.disabled = false;
+    alert("提取失败：" + e.message);
+    return;
+  }
+  setTimeout(() => {
+    btn.textContent = label;
+    btn.disabled = false;
+  }, 2500);
+}
+
+function renderImage(data) {
+  $("#image-kind").textContent =
+    { gpt: "GPT 分区表", lp: "super 元数据", sparse: "sparse 镜像", payload: "payload.bin" }[data.kind] || data.kind;
+  const body = $("#image-body");
+
+  if (data.kind === "payload") {
+    const p = data.payload;
+    const rows = p.partitions.map((x) => `
+      <tr><td class="mono">${esc(x.name)}</td><td>${human(x.size_bytes)}</td>
+          <td style="color:var(--muted)">${x.operation_count}</td>
+          <td style="color:var(--muted)">${esc(x.operations.join(", "))}</td>
+          <td>${x.extractable
+            ? `<button class="btn" data-part="${esc(x.name)}">提取</button>`
+            : '<span style="color:var(--dim)">增量</span>'}</td></tr>`).join("");
+    body.innerHTML = `
+      <p class="meta">payload 版本 <b>${p.version}</b> · 块 <b>${p.block_size}B</b> ·
+         <b>${p.partition_count}</b> 个分区</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>分区</th><th>解包后大小</th><th>操作数</th><th>类型</th><th>操作</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+    body.querySelectorAll("button[data-part]").forEach((btn) => {
+      btn.onclick = () => extractPart(data.ticket, btn.dataset.part, btn);
+    });
+    return;
+  }
+
+  if (data.kind === "gpt") {
+    const t = data.table;
+    const rows = t.partitions.map((p) => `
+      <tr><td style="color:var(--muted)">${p.index}</td><td class="mono">${esc(p.name) || "(未命名)"}</td>
+          <td class="mono" style="color:var(--muted)">${p.type.slice(0, 8)}</td>
+          <td class="mono">${p.first_lba}</td><td>${human(p.sectors * t.sector_size)}</td></tr>`).join("");
+    body.innerHTML = `
+      <p class="meta">扇区 <b>${t.sector_size}B</b> · ${t.source === "primary" ? "主表" : "备份表"} ·
+         CRC <b>${t.crc_ok ? "通过" : "异常"}</b> · 磁盘 <b>${esc(t.disk_guid)}</b></p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>名称</th><th>类型</th><th>起始 LBA</th><th>大小</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+  }
+
+  if (data.kind === "lp") {
+    const m = data.metadata;
+    const rows = m.partitions.map((p) => `
+      <tr><td class="mono">${esc(p.name)}</td><td>${p.size_human}</td>
+          <td style="color:var(--muted)">${p.extent_count}</td>
+          <td style="color:var(--muted)">${p.group_index}</td></tr>`).join("");
+    body.innerHTML = `
+      <p class="meta">版本 <b>${m.header.version}</b> · header <b>${m.header.header_size}B</b> ·
+         块大小 <b>${m.geometry.logical_block_size}B</b> · 逻辑容量 <b>${human(m.logical_size)}</b>
+         ${m.warnings.length ? ` · <b style="color:var(--warn)">${esc(m.warnings.join("；"))}</b>` : ""}</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+  }
+
+  if (data.kind === "sparse") {
+    const s = data.info;
+    const stats = Object.entries(s.chunk_stats).map(([k, v]) => `${k} ×${v}`).join("，");
+    body.innerHTML = `
+      <p class="meta">块大小 <b>${s.block_size}B</b> · <b>${s.total_blocks}</b> 块 ·
+         展开后 <b>${human(s.expanded_size)}</b> · <b>${s.total_chunks}</b> 个 chunk（${esc(stats)}）</p>`;
+  }
+}
+
+/* ---------- 关于 ---------- */
+$("#about-fields").innerHTML = [
+  ["版本", `v${(window.__IRIS_VERSION__ || "0.2.0")}`],
+  ["许可证", "GPL-3.0"],
+  ["运行时", "Python 标准库，无第三方依赖"],
+  ["数据", "全程本地处理，不上传"],
+  ["第三方二进制", "不打包"],
+  ["前端", "单页 HTML/CSS/JS + http.server"],
+].map(([k, v]) => `<div class="field"><em>${esc(k)}</em><b>${esc(v)}</b></div>`).join("");
+
+/* ---------- 启动 ---------- */
+$("#btn-doctor").addEventListener("click", loadDoctor);
+$("#btn-refresh").addEventListener("click", () => loadDevice(true));
+
+loadDoctor();
+loadDevice(false);
+
+</script>
+</body>
+</html>
