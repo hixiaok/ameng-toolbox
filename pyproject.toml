@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iris-toolbox"
+version = "0.1.0"
+description = "Android 设备工具链：核心库 + CLI，零第三方依赖"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-only" }
+authors = [{ name = "Iris contributors" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Topic :: System :: Hardware",
+]
+
+[project.scripts]
+iris = "iris.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["iris*"]
