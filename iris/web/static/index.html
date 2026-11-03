@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iris · Android 工具链</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">◈</div>
+      <div>
+        <div class="name">Iris</div>
+        <div class="ver" id="version">v0.1</div>
+      </div>
+    </div>
+
+    <nav id="nav">
+      <button class="nav-item active" data-view="doctor"><span>◎</span>环境自检</button>
+      <button class="nav-item" data-view="device"><span>▤</span>设备</button>
+      <button class="nav-item" data-view="image"><span>▣</span>镜像分析</button>
+      <button class="nav-item" data-view="about"><span>◷</span>关于</button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="dot" id="conn-dot"></div>
+      <span id="conn-text">未连接</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- 环境自检 -->
+    <section class="view active" id="view-doctor">
+      <header class="view-head">
+        <h1>环境自检</h1>
+        <button class="btn" id="btn-doctor">重新检测</button>
+      </header>
+      <div id="doctor-summary" class="summary"></div>
+      <div id="doctor-list" class="cards"></div>
+    </section>
+
+    <!-- 设备 -->
+    <section class="view" id="view-device">
+      <header class="view-head">
+        <h1>设备画像</h1>
+        <div class="head-actions">
+          <button class="btn" id="btn-refresh">重新探测</button>
+        </div>
+      </header>
+      <div id="device-empty" class="empty">
+        <p>没有检测到设备。</p>
+        <p class="muted">连接手机并开启 USB 调试后点「重新探测」。</p>
+      </div>
+      <div id="device-content" class="hidden">
+        <div class="kv" id="device-kv"></div>
+        <h2 class="sub">探测明细</h2>
+        <div id="probe-table"></div>
+      </div>
+    </section>
+
+    <!-- 镜像分析 -->
+    <section class="view" id="view-image">
+      <header class="view-head">
+        <h1>镜像分析</h1>
+        <span class="muted">自动识别 GPT / super(LP) / sparse</span>
+      </header>
+
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="file" hidden>
+        <div class="dz-icon">⇪</div>
+        <div class="dz-title">把镜像拖进来，或点击选择</div>
+        <div class="dz-sub">.img / .bin 均可 · 大文件会边传边解析</div>
+      </div>
+
+      <div id="image-result" class="hidden">
+        <div class="result-head">
+          <span class="badge" id="image-kind">-</span>
+          <span class="muted" id="image-name"></span>
+        </div>
+        <div id="image-body"></div>
+      </div>
+      <div id="image-error" class="error hidden"></div>
+    </section>
+
+    <!-- 关于 -->
+    <section class="view" id="view-about">
+      <header class="view-head"><h1>关于</h1></header>
+      <div class="about">
+        <p><b>Iris</b> —— 面向 Android 设备的多功能工具链。</p>
+        <p class="muted">
+          核心库与界面完全分离：本页面只是 <code>iris.core</code> 的一个前端，
+          CLI（<code>iris doctor / super / gpt</code>）用的是同一套代码。
+        </p>
+        <ul class="muted">
+          <li>GPL-3.0，参考 VioletToolBox 的设计与格式知识独立实现</li>
+          <li>不打包任何第三方二进制</li>
+          <li>所有解析在本地完成，不上传任何数据</li>
+        </ul>
+        <p class="muted small">服务端：Python 标准库 <code>http.server</code>，零第三方依赖。</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>window.__IRIS_TOKEN__ = "__TOKEN__";</script>
+<script src="/static/app.js"></script>
+</body>
+</html>

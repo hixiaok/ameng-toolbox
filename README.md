@@ -5,7 +5,7 @@
 > 定位：不是为了"再做一个刷机箱"，而是把刷机工具里最容易出错的部分——
 > 设备差异、路径探测、执行顺序、失败判定——做成可测试、可脚本化、可审计的一层。
 
-## 当前状态：v0.1（只读）
+## 当前状态：v0.2（只读 + 离线镜像）
 
 已实现：
 
@@ -17,12 +17,14 @@
 | `iris gpt <img>` | 离线解析 GPT：主/备表、CRC 校验、分区起止与大小 |
 | `iris super <img>` | 离线解析 super：LP geometry/header、分区与 extent 布局、checksum 告警 |
 | `iris sparse <img>` | 识别 sparse 镜像，`--unpack` 展开为 raw |
+| `iris gui` | 本地 Web 界面：环境自检 / 设备画像 / 镜像拖放分析 |
 
 未实现（见路线图）：payload 解包、super 合并、AVB 签名、fastboot 刷写、EDL。
 
 ## 快速开始
 
 ```powershell
+python -m iris gui          # 打开界面（默认随机端口 + 自动开浏览器）
 python -m iris doctor
 python -m iris devices
 python -m iris info --verbose
@@ -30,6 +32,14 @@ python -m iris gpt .tmp/demo_gpt.img
 ```
 
 `adb` 查找顺序：`--adb` 参数 → `IRIS_ADB` 环境变量 → `PATH` → 上溯各级目录下的 `platform-tools/adb.exe`。
+
+### 界面
+
+`iris gui` 起一个只监听 `127.0.0.1` 的本地服务（标准库 `http.server`，无第三方依赖），
+页面是纯静态 HTML/CSS/JS，拖一个 `.img` 进去会自动识别是 GPT / super / sparse 并渲染。
+
+三条安全约束：只绑定回环地址；校验 `Host` 头（防 DNS rebinding）；每个请求必须带
+启动时生成的随机 token（内嵌在页面里，外部页面拿不到）。上传文件边传边落盘，解析完立即删除。
 
 ## 四条设计原则
 

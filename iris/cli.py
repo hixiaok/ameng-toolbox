@@ -209,6 +209,12 @@ def cmd_sparse(args) -> int:
     return 0
 
 
+def cmd_gui(args) -> int:
+    from .web import serve
+
+    return serve(port=args.port, open_browser=not args.no_browser, quiet=args.quiet)
+
+
 # ---- 解析器 -------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="iris", description="Iris —— Android 设备工具链")
@@ -250,6 +256,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--json", action="store_true", help="输出 JSON")
     sp.add_argument("--unpack", metavar="OUT", help="展开到指定 raw 文件")
     sp.set_defaults(func=cmd_sparse)
+
+    sp = sub.add_parser("gui", help="启动本地 Web 界面")
+    sp.add_argument("--port", type=int, default=0, help="端口（默认随机）")
+    sp.add_argument("--no-browser", action="store_true", help="不自动打开浏览器")
+    sp.add_argument("--quiet", action="store_true", help="不打印访问日志")
+    sp.set_defaults(func=cmd_gui)
 
     sp = sub.add_parser("version", help="显示版本")
     sp.set_defaults(func=cmd_version)

@@ -169,3 +169,33 @@ def describe(blob: bytes) -> dict:
         "chunk_stats": stats,
         "version": f"{info.major}.{info.minor}",
     }
+
+
+def describe_path(path: str | Path) -> dict:
+    """只读 chunk 头做统计，不把几 GB 的镜像读进内存。"""
+    p = Path(path)
+    if not p.is_file():
+        raise InvalidImage(f"文件不存在：{p}")
+    size = p.stat().st_size
+    stats: dict[str, int] = {}
+    with p.open("rb") as f:
+        info = parse_header(f.read(HEADER_SIZE))
+        for _ in range(info.total_chunks):
+            raw = f.read(CHUNK_HEADER_SIZE)
+            if len(raw) < CHUNK_HEADER_SIZE:
+                raise InvalidImage("chunk 头越界，文件被截断")
+            ctype, _res, _blocks, total_size = struct.unpack("<HHII", raw)
+            payload_len = total_size - CHUNK_HEADER_SIZE
+            if payload_len < 0 or f.tell() + payload_len > size:
+                raise InvalidImage("chunk 数据越界，文件被截断")
+            f.seek(payload_len, 1)
+            kind = CHUNK_NAMES.get(ctype, f"0x{ctype:X}")
+            stats[kind] = stats.get(kind, 0) + 1
+    return {
+        "block_size": info.block_size,
+        "total_blocks": info.total_blocks,
+        "total_chunks": info.total_chunks,
+        "expanded_size": info.expanded_size,
+        "chunk_stats": stats,
+        "version": f"{info.major}.{info.minor}",
+    }
