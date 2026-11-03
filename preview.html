@@ -478,8 +478,9 @@ tbody tr:last-child td { border-bottom: 0; }
                 <option value="gptxml">GPT 转 XML</option>
                 <option value="split">拆分文件</option>
                 <option value="join">合并分片</option>
+                <option value="supermake">合并 super</option>
               </select>
-              <input class="input" id="tool-arg" placeholder="参数：输出路径 / 分片大小" spellcheck="false" style="flex:0 0 240px">
+              <input class="input" id="tool-arg" placeholder="参数：输出路径 / 分片大小 / 名字=文件;名字=文件" spellcheck="false" style="flex:0 0 280px">
               <button class="btn btn-primary" id="btn-tool">执行</button>
             </div>
             <pre class="output hidden" id="tool-out"></pre>

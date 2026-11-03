@@ -21,6 +21,10 @@
 | `iris avb <img>` | 解析 vbmeta：签名算法、flags、描述符 |
 | `iris sparse <img>` | 识别 sparse 镜像，`--unpack` 展开为 raw |
 | `iris payload <bin>` | 解析 OTA payload.bin，`--extract boot` 直接还原分区镜像 |
+| `iris supermake --part system_a=system.img` | 把散包合并成合法 super.img |
+| `iris app list/install/uninstall/freeze/extract` | 应用管理（免 root） |
+| `iris push/pull/ls/record/tcpip/connect` | 文件传输、录屏、无线调试 |
+| `iris hash/split/join/sparsepack/gptxml/bootunpack` | 本地文件工具 |
 | `iris gui` | 本地 Web 界面：环境自检 / 设备画像 / 镜像拖放分析 + 分区提取 |
 
 未实现（见路线图）：super 合并、AVB 签名、fastboot 刷写、EDL。

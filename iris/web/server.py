@@ -33,6 +33,7 @@ from ..core.image import bootimg as bootimg_mod
 from ..core.image import lp as lp_mod
 from ..core.image import payload as payload_mod
 from ..core.image import sparse as sparse_mod
+from ..core.image import superbuild as superbuild_mod
 from ..core.partition import gpt as gpt_mod
 from ..core.profile import load_cached, probe, save
 
@@ -184,6 +185,19 @@ class Handler(BaseHTTPRequestHandler):
                 result = local_tools.pack_sparse(target, arg)
             elif op == "bootunpack":
                 result = bootimg_mod.extract(bootimg_mod.parse(target), target, arg)
+            elif op == "supermake":
+                specs = [s for s in arg.split(";") if s.strip()]
+                if not specs:
+                    self._fail(400, "arg 里要写 名字=文件;名字=文件")
+                    return
+                parts = []
+                for spec in specs:
+                    if "=" not in spec:
+                        self._fail(400, f"格式错误：{spec}")
+                        return
+                    name, path_text = spec.split("=", 1)
+                    parts.append((name.strip(), path_text.strip()))
+                result = superbuild_mod.merge(parts, target)
             else:
                 self._fail(400, f"未知操作：{op}")
                 return

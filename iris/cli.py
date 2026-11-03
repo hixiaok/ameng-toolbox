@@ -493,6 +493,31 @@ def cmd_connect(args) -> int:
     return 0 if ok else 1
 
 
+def cmd_supermake(args) -> int:
+    from .core.image import superbuild
+
+    parts: list[tuple[str, str]] = []
+    for item in args.part:
+        if "=" not in item:
+            raise IrisError(f"--part 格式应为 名字=文件：{item}")
+        name, path = item.split("=", 1)
+        parts.append((name.strip(), path.strip()))
+    if not parts:
+        raise IrisError("至少给一个 --part", hint="例：--part system_a=system.img")
+
+    size = None
+    if args.size:
+        from .core.tools import local
+
+        size = local._parse_size(args.size)
+
+    result = superbuild.merge(parts, args.out, total_size=size)
+    print(f"已生成 {args.out}（{lp_mod.human_size(result['out_bytes'])}）")
+    for p in result["partitions"]:
+        print(f"  {p['name']:<16} {lp_mod.human_size(p['size']):>10}  offset={p['offset']}")
+    return 0
+
+
 # ---- 解析器 -------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="iris", description="Iris —— Android 设备工具链")
@@ -602,6 +627,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("file", help="boot 镜像")
     sp.add_argument("--out", required=True, help="输出目录")
     sp.set_defaults(func=cmd_bootunpack)
+
+    sp = sub.add_parser("supermake", help="把散包合并成 super.img")
+    sp.add_argument("--part", action="append", default=[], help="名字=文件，可重复")
+    sp.add_argument("--out", required=True, help="输出 super.img")
+    sp.add_argument("--size", help="总大小，例如 8G（默认按数据量算）")
+    sp.set_defaults(func=cmd_supermake)
 
     sp = sub.add_parser("super", help="解析 super 动态分区元数据（离线）")
     sp.add_argument("image", help="super 镜像文件")
