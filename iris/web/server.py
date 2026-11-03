@@ -359,6 +359,25 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"ok": ok, "message": msg})
                 return
 
+            if path == "/api/app/freeze":
+                pkg = (query.get("pkg") or [""])[0]
+                enable = (query.get("on") or ["0"])[0] == "1"
+                if not pkg:
+                    self._fail(400, "缺少 pkg 参数")
+                    return
+                ok, msg = device_apps.set_enabled(Adb(), pkg, enable)
+                self._json({"ok": ok, "message": msg})
+                return
+
+            if path == "/api/app/extract":
+                pkg = (query.get("pkg") or [""])[0]
+                if not pkg:
+                    self._fail(400, "缺少 pkg 参数")
+                    return
+                ok, msg = device_apps.extract_apk(Adb(), pkg, str(SHOTS / "apk"))
+                self._json({"ok": ok, "message": msg})
+                return
+
             if path == "/api/shell":
                 cmd = (query.get("cmd") or [""])[0]
                 if not cmd:

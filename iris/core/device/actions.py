@@ -98,6 +98,18 @@ def action(name: str, adb: Adb, *, workdir: Path) -> ActionResult:
             return ActionResult(False, "抓取日志失败", res.err or res.out)
         return ActionResult(True, f"日志 {len(res.stdout_lines)} 行", res.out[-20000:])
 
+    if name == "record":
+        from . import files as device_files
+
+        ok, msg = device_files.record(adb, 15, str(workdir))
+        return ActionResult(ok, ("录屏已保存：" + msg) if ok else "录屏失败", msg if not ok else "")
+
+    if name == "tcpip":
+        from . import files as device_files
+
+        ok, msg = device_files.tcpip(adb, 5555)
+        return ActionResult(ok, msg, "" if ok else msg)
+
     raise IrisError(f"未知操作：{name}", hint="可选：reboot_system / reboot_recovery / "
                                         "reboot_bootloader / reboot_fastbootd / shutdown / "
-                                        "screenshot / logcat")
+                                        "screenshot / logcat / record / tcpip")

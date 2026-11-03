@@ -402,18 +402,30 @@ async function loadApps(all) {
     $("#apps-count").textContent = `已读取 ${data.count} 个`;
     const rows = data.packages.map((p) =>
       `<tr><td class="mono">${esc(p)}</td>
-           <td><button class="btn" data-pkg="${esc(p)}">卸载</button></td></tr>`).join("");
+           <td class="nowrap">
+             <button class="btn" data-op="freeze" data-pkg="${esc(p)}">冻结</button>
+             <button class="btn" data-op="unfreeze" data-pkg="${esc(p)}">解冻</button>
+             <button class="btn" data-op="extract" data-pkg="${esc(p)}">提取</button>
+             <button class="btn" data-op="uninstall" data-pkg="${esc(p)}">卸载</button>
+           </td></tr>`).join("");
     table.innerHTML = `<table><thead><tr><th>包名</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
     table.querySelectorAll("button[data-pkg]").forEach((b) => {
       b.onclick = async () => {
-        if (!confirm(`卸载 ${b.dataset.pkg}？`)) return;
+        const pkg = b.dataset.pkg;
+        const op = b.dataset.op;
+        if (op === "uninstall" && !confirm(`卸载 ${pkg}？`)) return;
         b.disabled = true;
         try {
-          const r = await api("/api/app/uninstall?pkg=" + encodeURIComponent(b.dataset.pkg));
+          const url = op === "freeze" ? `/api/app/freeze?pkg=${encodeURIComponent(pkg)}&on=0`
+            : op === "unfreeze" ? `/api/app/freeze?pkg=${encodeURIComponent(pkg)}&on=1`
+            : op === "extract" ? `/api/app/extract?pkg=${encodeURIComponent(pkg)}`
+            : `/api/app/uninstall?pkg=${encodeURIComponent(pkg)}`;
+          const r = await api(url);
           toast(r.message, !r.ok);
-          if (r.ok) b.closest("tr").remove();
+          if (op === "uninstall" && r.ok) b.closest("tr").remove();
         } catch (e) {
           toast(e.message, true);
+        } finally {
           b.disabled = false;
         }
       };

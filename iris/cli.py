@@ -341,7 +341,31 @@ def cmd_app(args) -> int:
         print(("✓ " if ok else "✗ ") + msg)
         return 0 if ok else 1
 
-    raise IrisError("未知子命令", hint="list / install / uninstall")
+    if args.app_cmd in ("freeze", "unfreeze"):
+        target = args.target or ""
+        if not target:
+            raise IrisError("缺少包名")
+        ok, msg = device_apps.set_enabled(adb, target, args.app_cmd == "unfreeze")
+        print(("✓ " if ok else "✗ ") + msg)
+        return 0 if ok else 1
+
+    if args.app_cmd == "clear":
+        target = args.target or ""
+        if not target:
+            raise IrisError("缺少包名")
+        ok, msg = device_apps.clear_data(adb, target)
+        print(("✓ " if ok else "✗ ") + msg)
+        return 0 if ok else 1
+
+    if args.app_cmd == "extract":
+        target = args.target or ""
+        if not target:
+            raise IrisError("缺少包名")
+        ok, msg = device_apps.extract_apk(adb, target, args.out or ".")
+        print(("✓ " if ok else "✗ ") + msg)
+        return 0 if ok else 1
+
+    raise IrisError("未知子命令", hint="list / install / uninstall / freeze / unfreeze / clear / extract")
 
 
 def cmd_shell(args) -> int:
@@ -415,6 +439,60 @@ def cmd_bootunpack(args) -> int:
     return 0
 
 
+def cmd_push(args) -> int:
+    from .core.device import files as device_files
+
+    ok, msg = device_files.push(Adb(exe=args.adb, serial=args.serial), args.local, args.remote)
+    print(("✓ " if ok else "✗ ") + msg)
+    return 0 if ok else 1
+
+
+def cmd_pull(args) -> int:
+    from .core.device import files as device_files
+
+    ok, msg = device_files.pull(Adb(exe=args.adb, serial=args.serial), args.remote, args.local)
+    print(("✓ " if ok else "✗ ") + msg)
+    return 0 if ok else 1
+
+
+def cmd_ls(args) -> int:
+    from .core.device import files as device_files
+
+    items = device_files.ls(Adb(exe=args.adb, serial=args.serial), args.path)
+    if args.json:
+        print(json.dumps(items, ensure_ascii=False, indent=2))
+        return 0
+    for it in items:
+        print(f"{it['perm']:<12} {it['size']:>10}  {it['name']}")
+    return 0
+
+
+def cmd_record(args) -> int:
+    from .core.device import files as device_files
+
+    ok, msg = device_files.record(Adb(exe=args.adb, serial=args.serial), args.seconds, args.out)
+    print(("✓ " if ok else "✗ ") + msg)
+    return 0 if ok else 1
+
+
+def cmd_tcpip(args) -> int:
+    from .core.device import files as device_files
+
+    ok, msg = device_files.tcpip(Adb(exe=args.adb, serial=args.serial), args.port)
+    print(("✓ " if ok else "✗ ") + msg)
+    if ok:
+        print("接着执行： iris connect <手机IP>")
+    return 0 if ok else 1
+
+
+def cmd_connect(args) -> int:
+    from .core.device import files as device_files
+
+    ok, msg = device_files.connect(args.host, args.port)
+    print(("✓ " if ok else "✗ ") + msg)
+    return 0 if ok else 1
+
+
 # ---- 解析器 -------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="iris", description="Iris —— Android 设备工具链")
@@ -447,9 +525,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("app", help="应用管理：list / install / uninstall")
     add_common(sp)
-    sp.add_argument("app_cmd", choices=["list", "install", "uninstall"])
+    sp.add_argument("app_cmd", choices=["list", "install", "uninstall", "freeze", "unfreeze", "clear", "extract"])
     sp.add_argument("target", nargs="?", help="APK 路径或包名")
     sp.add_argument("--all", action="store_true", help="列表包含系统应用")
+    sp.add_argument("--out", help="提取 APK 时的输出目录")
     sp.set_defaults(func=cmd_app)
 
     sp = sub.add_parser("shell", help="在设备上执行 shell 命令")
@@ -457,6 +536,40 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--timeout", type=float, default=30.0, help="超时秒数")
     add_common(sp)
     sp.set_defaults(func=cmd_shell)
+
+    sp = sub.add_parser("push", help="把本地文件推到设备")
+    sp.add_argument("local", help="本地路径")
+    sp.add_argument("remote", help="设备路径")
+    add_common(sp)
+    sp.set_defaults(func=cmd_push)
+
+    sp = sub.add_parser("pull", help="把设备文件拉到本地")
+    sp.add_argument("remote", help="设备路径")
+    sp.add_argument("local", help="本地路径")
+    add_common(sp)
+    sp.set_defaults(func=cmd_pull)
+
+    sp = sub.add_parser("ls", help="列出设备目录")
+    sp.add_argument("path", nargs="?", default="/sdcard", help="设备路径")
+    add_common(sp)
+    sp.set_defaults(func=cmd_ls)
+
+    sp = sub.add_parser("record", help="录屏")
+    sp.add_argument("--seconds", type=int, default=15, help="时长（1-180 秒）")
+    sp.add_argument("--out", default="shots", help="保存目录")
+    add_common(sp)
+    sp.set_defaults(func=cmd_record)
+
+    sp = sub.add_parser("tcpip", help="开启无线调试端口")
+    sp.add_argument("--port", type=int, default=5555)
+    add_common(sp)
+    sp.set_defaults(func=cmd_tcpip)
+
+    sp = sub.add_parser("connect", help="连接无线调试设备")
+    sp.add_argument("host", help="手机 IP")
+    sp.add_argument("--port", type=int, default=5555)
+    add_common(sp)
+    sp.set_defaults(func=cmd_connect)
 
     sp = sub.add_parser("hash", help="计算文件 MD5 / SHA1 / SHA256")
     sp.add_argument("file", help="文件路径")
