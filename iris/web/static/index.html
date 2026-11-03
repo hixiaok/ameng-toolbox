@@ -3,84 +3,111 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Iris · Android Toolchain</title>
+<title>Iris Toolbox</title>
 <link rel="stylesheet" href="/static/style.css">
-<link rel="stylesheet" href="/static/themes.css">
 </head>
-<body data-theme="win">
+<body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M13.4 10.6 17 7"/><path d="M4.5 18a9 9 0 1 1 15 0"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/><path d="M11 18.5h2"/></symbol>
   <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 8.5 4.5L12 12 3.5 7.5 12 3Z"/><path d="m4 12 8 4.3 8-4.3"/><path d="m4 16.5 8 4.3 8-4.3"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.9"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2.5h8A1.5 1.5 0 0 1 20.5 10v7.5A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5Z"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M7 6.5a7 7 0 1 0 10 0"/></symbol>
+  <symbol id="i-restart" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 5v5h5"/></symbol>
+  <symbol id="i-boot" viewBox="0 0 24 24"><path d="M12 4v9"/><path d="m8 9 4 4 4-4"/><path d="M5 20h14"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4Z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24"><path d="M6 4h9l4 4v12H6Z"/><path d="M9 12h6M9 16h6"/></symbol>
 </svg>
 
 <div class="app">
   <header class="titlebar">
-    <div class="tb-brand">
-      <span class="tb-logo">I</span>
-      <span class="tb-name">Iris</span>
-      <span class="tb-sub">Android Toolchain</span>
-    </div>
-    <div class="tb-right">
-      <span class="themes" id="themes">
-        <button class="theme-btn" data-t="win" title="系统灰"></button>
-        <button class="theme-btn" data-t="light" title="素白"></button>
-        <button class="theme-btn" data-t="green" title="绿"></button>
-        <button class="theme-btn" data-t="dark" title="深夜"></button>
-      </span>
-      <span class="tb-chip" id="tb-version">v0.2.0</span>
-    </div>
+    <span class="tb-title">Iris Toolbox</span>
+    <div class="tb-right"><span class="tb-dot"></span><span class="tb-dot"></span><span class="tb-dot"></span></div>
   </header>
 
   <div class="body">
-    <nav class="side">
-      <button class="nav active" data-view="doctor"><svg><use href="#i-gauge"/></svg><span>环境自检</span></button>
-      <button class="nav" data-view="device"><svg><use href="#i-phone"/></svg><span>设备</span></button>
-      <button class="nav" data-view="image"><svg><use href="#i-layers"/></svg><span>镜像分析</span></button>
-      <button class="nav" data-view="about"><svg><use href="#i-info"/></svg><span>关于</span></button>
-    </nav>
+    <aside class="side">
+      <div class="brand"><div class="brand-mark">I</div></div>
+      <dl class="devsum" id="devsum">
+        <dt>状态</dt><dd id="ds-state">未连接</dd>
+        <dt>代号</dt><dd id="ds-code">—</dd>
+        <dt>BL 状态</dt><dd id="ds-bl">—</dd>
+        <dt>槽位</dt><dd id="ds-slot">—</dd>
+      </dl>
+      <nav>
+        <button class="nav active" data-view="doctor"><svg><use href="#i-gauge"/></svg><span>环境自检</span></button>
+        <button class="nav" data-view="device"><svg><use href="#i-phone"/></svg><span>设备</span></button>
+        <button class="nav" data-view="image"><svg><use href="#i-layers"/></svg><span>镜像分析</span></button>
+        <button class="nav" data-view="about"><svg><use href="#i-info"/></svg><span>关于</span></button>
+      </nav>
+      <div class="side-foot"><span>v0.3</span><span id="foot-state">离线</span></div>
+    </aside>
 
-    <main class="content">
+    <main class="main">
       <!-- 环境自检 -->
       <section class="view active" id="view-doctor">
-        <div class="page-head">
-          <h1>环境自检</h1>
-          <p>检查 adb、驱动与设备授权状态</p>
-          <button class="btn" id="btn-doctor">重新检测</button>
-        </div>
-
-        <div class="group">
-          <div class="group-head">
-            <span>检查项</span>
-            <span class="group-chips" id="doctor-chips"></span>
+        <div class="cards">
+          <div class="card span4">
+            <div class="card-head">
+              <h2>环境自检<span class="sub">adb 驱动与设备授权</span></h2>
+              <div class="chips" id="doctor-chips"></div>
+            </div>
+            <div class="rows" id="doctor-list"></div>
           </div>
-          <div class="rows" id="doctor-list"></div>
         </div>
       </section>
 
       <!-- 设备 -->
       <section class="view" id="view-device">
-        <div class="page-head">
-          <h1>设备</h1>
-          <p>一次探测，后续功能只读这份画像</p>
-          <button class="btn" id="btn-refresh">重新探测</button>
-        </div>
-
-        <div id="device-empty" class="empty">
-          <svg><use href="#i-phone"/></svg>
-          <b>没有检测到设备</b>
-          <span>连接手机并开启 USB 调试后点「重新探测」</span>
-        </div>
-
-        <div id="device-content" class="hidden">
-          <div class="group">
-            <div class="group-head"><span>基本信息</span></div>
-            <div class="fields" id="device-fields"></div>
+        <div class="cards">
+          <div class="card span4" id="device-empty">
+            <div class="empty">
+              <b>没有检测到设备</b>
+              <span>连接手机并开启 USB 调试后，切换到本页会自动重试</span>
+            </div>
           </div>
-          <div class="group">
-            <div class="group-head"><span>探测明细</span></div>
+
+          <div class="card span2" id="card-info">
+            <h2>设备信息</h2>
+            <div class="kv2" id="device-fields"></div>
+          </div>
+
+          <div class="card" id="card-batt">
+            <h2>电池</h2>
+            <div class="rings">
+              <div class="ring">
+                <div class="dial" id="batt-dial" style="--pct:0"><span class="num" id="batt-num">—</span></div>
+                <div class="cap" id="batt-cap">未连接</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="card-disk">
+            <h2>存储</h2>
+            <div class="rings">
+              <div class="ring">
+                <div class="dial" id="disk-dial" style="--pct:0"><span class="num" id="disk-num">—</span></div>
+                <div class="cap" id="disk-cap">未连接</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card span4">
+            <h2>快捷操作<span class="sub">免 root</span></h2>
+            <div class="acts" id="device-actions">
+              <button class="act" data-act="reboot_system"><svg><use href="#i-restart"/></svg>重启系统</button>
+              <button class="act" data-act="reboot_recovery"><svg><use href="#i-power"/></svg>Recovery</button>
+              <button class="act" data-act="reboot_bootloader"><svg><use href="#i-boot"/></svg>Bootloader</button>
+              <button class="act" data-act="reboot_fastbootd"><svg><use href="#i-boot"/></svg>Fastbootd</button>
+              <button class="act" data-act="screenshot"><svg><use href="#i-camera"/></svg>截图</button>
+              <button class="act" data-act="logcat"><svg><use href="#i-log"/></svg>抓日志</button>
+            </div>
+            <pre class="output hidden" id="action-output"></pre>
+          </div>
+
+          <div class="card span4">
+            <h2>探测明细</h2>
             <div class="table-wrap" id="probe-table"></div>
           </div>
         </div>
@@ -88,59 +115,50 @@
 
       <!-- 镜像分析 -->
       <section class="view" id="view-image">
-        <div class="page-head">
-          <h1>镜像分析</h1>
-          <p>自动识别 GPT 分区表 / super 动态分区 / sparse 稀疏镜像</p>
-        </div>
-
-        <div class="group">
-          <div class="group-head"><span>镜像文件</span></div>
-          <div class="filerow">
-            <button class="btn btn-primary" id="pick"><svg class="btn-ico"><use href="#i-folder"/></svg>选择文件…</button>
-            <span class="path" id="file-name">未选择 · 也可以把文件直接拖进窗口</span>
+        <div class="cards">
+          <div class="card span4">
+            <div class="card-head">
+              <h2>镜像分析<span class="sub">自动识别 payload / super / boot / vbmeta / GPT / sparse</span></h2>
+              <button class="btn btn-primary" id="pick"><svg class="btn-ico"><use href="#i-folder"/></svg>选择文件</button>
+            </div>
+            <div class="filerow">
+              <span class="path" id="file-name">未选择 · 也可以把文件拖进窗口</span>
+            </div>
           </div>
-        </div>
 
-        <div id="image-result" class="hidden">
-          <div class="group">
-            <div class="group-head">
-              <span>分析结果</span>
+          <div class="card span4 hidden" id="image-result">
+            <div class="card-head">
+              <h2 id="image-title">分析结果</h2>
               <span class="tag" id="image-kind">-</span>
-              <span class="group-note" id="image-name"></span>
             </div>
             <div id="image-body"></div>
           </div>
-        </div>
 
-        <div id="image-error" class="alert hidden"></div>
+          <div class="card span4 hidden" id="image-error-card">
+            <div class="alert" id="image-error"></div>
+          </div>
+        </div>
       </section>
 
       <!-- 关于 -->
       <section class="view" id="view-about">
-        <div class="page-head">
-          <h1>关于</h1>
-          <p>核心库与界面完全分离，CLI 和这个页面用的是同一套代码</p>
-        </div>
-        <div class="group">
-          <div class="group-head"><span>软件信息</span></div>
-          <div class="fields" id="about-fields"></div>
+        <div class="cards">
+          <div class="card span4">
+            <h2>关于 Iris</h2>
+            <p class="about-p">
+              核心库与界面完全分离：这个页面只是 <code>iris.core</code> 的一个前端，
+              CLI（<code>iris doctor / super / payload / boot / avb</code>）用的是同一套代码。
+              零第三方依赖，所有解析都在本地完成。
+            </p>
+            <div class="kv2" id="about-fields"></div>
+          </div>
         </div>
       </section>
     </main>
   </div>
-
-  <footer class="statusbar">
-    <span class="sb"><i class="led" id="sb-led"></i><span id="sb-device">未连接</span></span>
-    <span class="sb">ADB <b id="sb-adb">—</b></span>
-    <span class="sb">机型 <b id="sb-model">—</b></span>
-    <span class="sb">ROOT <b id="sb-root">—</b></span>
-    <span class="sb-grow"></span>
-    <span class="sb sb-dim" id="sb-note">本地服务 · 数据不外传</span>
-  </footer>
 </div>
 
-<div id="boot-error" class="alert hidden" style="margin:12px 16px 0"></div>
-
+<div id="boot-error" class="alert hidden" style="margin:12px 16px"></div>
 <script>
   window.addEventListener("error", function (e) {
     var box = document.getElementById("boot-error");

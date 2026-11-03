@@ -24,6 +24,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from .. import __version__
 from ..core import diag
 from ..core.adb import Adb
+from ..core.device import actions as device_actions
 from ..core.errors import IrisError
 from ..core.image import avb as avb_mod
 from ..core.image import bootimg as bootimg_mod
@@ -35,6 +36,7 @@ from ..core.profile import load_cached, probe, save
 
 BASE = Path(__file__).parent
 STATIC = BASE / "static"
+SHOTS = BASE.parents[1] / "shots"
 MAX_UPLOAD = 16 * 1024 * 1024 * 1024  # 单文件上限 16GB
 
 # 上传的 payload / super 保留一段时间，供「提取分区」使用
@@ -258,6 +260,18 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/extract":
                 self._api_extract(query)
+                return
+
+            if path == "/api/device/stats":
+                serial = (query.get("serial") or [None])[0]
+                self._json(device_actions.stats(Adb(serial=serial)))
+                return
+
+            if path == "/api/device/action":
+                name = (query.get("name") or [""])[0]
+                serial = (query.get("serial") or [None])[0]
+                result = device_actions.action(name, Adb(serial=serial), workdir=SHOTS)
+                self._json(result.to_dict())
                 return
 
             self._fail(404, "unknown endpoint")

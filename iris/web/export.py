@@ -61,21 +61,22 @@ def render_chips(report: dict) -> str:
 
 def render_fields(profile: dict) -> str:
     rows = [
-        ("序列号", profile.get("serial")),
-        ("机型", f'{profile.get("brand", "")} {profile.get("model", "")}'.strip()),
-        ("代号", profile.get("codename")),
-        ("SoC", f'{profile.get("soc_manufacturer", "")} {profile.get("soc_model", "")}'.strip()),
-        ("系统", f'Android {profile.get("android_release") or "?"} · SDK {profile.get("sdk") or "?"}'),
-        ("架构", profile.get("abi")),
-        ("安全补丁", profile.get("security_patch")),
+        ("品牌", profile.get("brand") or "—"),
+        ("型号", profile.get("model") or "—"),
+        ("代号", profile.get("codename") or "—"),
+        ("Android", f'Android {profile.get("android_release") or "?"} · SDK {profile.get("sdk") or "?"}'),
+        ("SoC", profile.get("soc_model") or "—"),
+        ("架构", profile.get("abi") or "—"),
+        ("安全补丁", profile.get("security_patch") or "—"),
         ("槽位", f'A/B（{profile.get("slot_suffix") or "?"}）' if profile.get("ab_update") else "单槽位"),
         ("ROOT", "是" if profile.get("root") else "否"),
         ("by-name 根", profile.get("by_name_root") or "未探测到"),
         ("块设备", profile.get("block_device") or "未知"),
-        ("已知分区", f'{len(profile.get("partitions") or {})} 个'),
+        ("分区数", str(len(profile.get("partitions") or {}))),
     ]
     return "".join(
-        f'<div class="field"><em>{_e(k)}</em><b>{_e(v)}</b></div>' for k, v in rows
+        f'<div class="row2"><span class="k">{_e(k)}</span><span class="v">{_e(v)}</span></div>'
+        for k, v in rows
     )
 
 
@@ -224,7 +225,9 @@ def render_about(version: str) -> str:
         ("第三方二进制", "不打包"),
         ("前端", "单页 HTML/CSS/JS + http.server"),
     ]
-    return "".join(f'<div class="field"><em>{_e(k)}</em><b>{_e(v)}</b></div>' for k, v in rows)
+    return "".join(
+        f'<div class="row2"><span class="k">{_e(k)}</span><span class="v">{_e(v)}</span></div>' for k, v in rows
+    )
 
 
 def _inline(html: str) -> str:
@@ -260,18 +263,17 @@ def build_snapshot(image: str | None = None, version: str = "0.2.0") -> str:
 
     # ---- 预渲染注入 ----
     page = page.replace(
-        '<span class="group-chips" id="doctor-chips"></span>',
-        f'<span class="group-chips" id="doctor-chips">{render_chips(data["/api/doctor"])}</span>',
+        '<div class="chips" id="doctor-chips"></div>',
+        f'<div class="chips" id="doctor-chips">{render_chips(data["/api/doctor"])}</div>',
     )
     page = page.replace('<div class="rows" id="doctor-list"></div>',
                         f'<div class="rows" id="doctor-list">{render_doctor(data["/api/doctor"])}</div>')
 
     if profile:
-        page = page.replace('<div id="device-empty" class="empty">',
-                            '<div id="device-empty" class="empty hidden">')
-        page = page.replace('<div id="device-content" class="hidden">', '<div id="device-content">')
-        page = page.replace('<div class="fields" id="device-fields"></div>',
-                            f'<div class="fields" id="device-fields">{render_fields(profile)}</div>')
+        page = page.replace('<div class="card span4" id="device-empty">',
+                            '<div class="card span4 hidden" id="device-empty">')
+        page = page.replace('<div class="kv2" id="device-fields"></div>',
+                            f'<div class="kv2" id="device-fields">{render_fields(profile)}</div>')
         page = page.replace('<div class="table-wrap" id="probe-table"></div>',
                             f'<div class="table-wrap" id="probe-table">{render_probes(profile)}</div>')
     else:
@@ -281,20 +283,21 @@ def build_snapshot(image: str | None = None, version: str = "0.2.0") -> str:
     if analysis:
         name = Path(image).name if image else "镜像"
         page = page.replace(
-            '<span class="path" id="file-name">未选择 · 也可以把文件直接拖进窗口</span>',
+            '<span class="path" id="file-name">未选择 · 也可以把文件拖进窗口</span>',
             f'<span class="path" id="file-name">{_e(name)}</span>',
         )
-        page = page.replace('<div id="image-result" class="hidden">', '<div id="image-result">')
+        page = page.replace('<div class="card span4 hidden" id="image-result">',
+                            '<div class="card span4" id="image-result">')
+        page = page.replace('<h2 id="image-title">分析结果</h2>',
+                            f'<h2 id="image-title">{_e(name)}</h2>')
         page = page.replace('<span class="tag" id="image-kind">-</span>',
                             f'<span class="tag" id="image-kind">'
-                            f'{ {"gpt": "GPT 分区表", "lp": "super 元数据", "sparse": "sparse 镜像", "payload": "payload.bin", "boot": "boot 镜像", "avb": "AVB 签名"}.get(analysis["kind"], analysis["kind"]) }</span>')
-        page = page.replace('<span class="group-note" id="image-name"></span>',
-                            f'<span class="group-note" id="image-name">{_e(name)}</span>')
+                            f'{ {"gpt": "GPT", "lp": "super", "sparse": "sparse", "payload": "payload", "boot": "boot", "avb": "vbmeta"}.get(analysis["kind"], analysis["kind"]) }</span>')
         page = page.replace('<div id="image-body"></div>',
                             f'<div id="image-body">{render_image(analysis)}</div>')
 
-    page = page.replace('<div class="fields" id="about-fields"></div>',
-                        f'<div class="fields" id="about-fields">{render_about(version)}</div>')
+    page = page.replace('<div class="kv2" id="about-fields"></div>',
+                        f'<div class="kv2" id="about-fields">{render_about(version)}</div>')
 
     page = _inline(page)
     payload = json.dumps(data, ensure_ascii=False)
