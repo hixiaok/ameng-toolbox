@@ -3,102 +3,115 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Iris · Android 工具链</title>
+<title>Iris</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="app">
-  <aside class="sidebar">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M13.4 10.6 17 7"/><path d="M4.5 18a9 9 0 1 1 15 0"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 8.5 4.5L12 12 3.5 7.5 12 3Z"/><path d="m4 12 8 4.3 8-4.3"/><path d="m4 16.5 8 4.3 8-4.3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.9"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
+</svg>
+
+<div class="shell">
+  <aside class="side">
     <div class="brand">
-      <div class="logo">◈</div>
-      <div>
-        <div class="name">Iris</div>
-        <div class="ver" id="version">v0.1</div>
+      <div class="mark"></div>
+      <div class="brand-text">
+        <div class="brand-name">Iris</div>
+        <div class="brand-sub">Android Toolchain</div>
       </div>
     </div>
 
-    <nav id="nav">
-      <button class="nav-item active" data-view="doctor"><span>◎</span>环境自检</button>
-      <button class="nav-item" data-view="device"><span>▤</span>设备</button>
-      <button class="nav-item" data-view="image"><span>▣</span>镜像分析</button>
-      <button class="nav-item" data-view="about"><span>◷</span>关于</button>
+    <nav>
+      <button class="nav active" data-view="doctor"><svg><use href="#i-gauge"/></svg><span>环境自检</span></button>
+      <button class="nav" data-view="device"><svg><use href="#i-phone"/></svg><span>设备</span></button>
+      <button class="nav" data-view="image"><svg><use href="#i-layers"/></svg><span>镜像分析</span></button>
+      <button class="nav" data-view="about"><svg><use href="#i-info"/></svg><span>关于</span></button>
     </nav>
 
-    <div class="sidebar-foot">
-      <div class="dot" id="conn-dot"></div>
-      <span id="conn-text">未连接</span>
+    <div class="status" id="status-chip">
+      <i class="led"></i><span id="status-text">未连接</span>
     </div>
   </aside>
 
-  <main class="main">
+  <main class="content">
     <!-- 环境自检 -->
     <section class="view active" id="view-doctor">
-      <header class="view-head">
-        <h1>环境自检</h1>
+      <header class="head">
+        <div>
+          <h1>环境自检</h1>
+          <p class="sub">检查 adb、驱动与设备授权状态，每项都给处理建议</p>
+        </div>
         <button class="btn" id="btn-doctor">重新检测</button>
       </header>
-      <div id="doctor-summary" class="summary"></div>
-      <div id="doctor-list" class="cards"></div>
+      <div class="chips" id="doctor-summary"></div>
+      <div class="list" id="doctor-list"></div>
     </section>
 
     <!-- 设备 -->
     <section class="view" id="view-device">
-      <header class="view-head">
-        <h1>设备画像</h1>
-        <div class="head-actions">
-          <button class="btn" id="btn-refresh">重新探测</button>
+      <header class="head">
+        <div>
+          <h1>设备画像</h1>
+          <p class="sub">一次性探测所有因设备而异的事实，后续功能只读这份画像</p>
         </div>
+        <button class="btn" id="btn-refresh">重新探测</button>
       </header>
-      <div id="device-empty" class="empty">
-        <p>没有检测到设备。</p>
-        <p class="muted">连接手机并开启 USB 调试后点「重新探测」。</p>
+      <div class="placeholder" id="device-empty">
+        <svg class="ph-icon"><use href="#i-phone"/></svg>
+        <p>没有检测到设备</p>
+        <span>连接手机并开启 USB 调试后点「重新探测」</span>
       </div>
       <div id="device-content" class="hidden">
-        <div class="kv" id="device-kv"></div>
-        <h2 class="sub">探测明细</h2>
-        <div id="probe-table"></div>
+        <div class="grid" id="device-kv"></div>
+        <h2 class="section-title">探测明细</h2>
+        <div id="probe-table" class="table-wrap"></div>
       </div>
     </section>
 
     <!-- 镜像分析 -->
     <section class="view" id="view-image">
-      <header class="view-head">
-        <h1>镜像分析</h1>
-        <span class="muted">自动识别 GPT / super(LP) / sparse</span>
+      <header class="head">
+        <div>
+          <h1>镜像分析</h1>
+          <p class="sub">自动识别 GPT 分区表 / super 动态分区 / sparse 稀疏镜像</p>
+        </div>
       </header>
 
-      <div class="dropzone" id="dropzone">
+      <div class="drop" id="dropzone">
         <input type="file" id="file" hidden>
-        <div class="dz-icon">⇪</div>
-        <div class="dz-title">把镜像拖进来，或点击选择</div>
-        <div class="dz-sub">.img / .bin 均可 · 大文件会边传边解析</div>
+        <svg class="drop-icon"><use href="#i-upload"/></svg>
+        <div class="drop-title">拖入镜像文件</div>
+        <div class="drop-sub">或点击选择 · .img / .bin 均可</div>
       </div>
 
       <div id="image-result" class="hidden">
         <div class="result-head">
-          <span class="badge" id="image-kind">-</span>
+          <span class="tag" id="image-kind">-</span>
           <span class="muted" id="image-name"></span>
         </div>
         <div id="image-body"></div>
       </div>
-      <div id="image-error" class="error hidden"></div>
+      <div id="image-error" class="alert hidden"></div>
     </section>
 
     <!-- 关于 -->
     <section class="view" id="view-about">
-      <header class="view-head"><h1>关于</h1></header>
-      <div class="about">
-        <p><b>Iris</b> —— 面向 Android 设备的多功能工具链。</p>
-        <p class="muted">
-          核心库与界面完全分离：本页面只是 <code>iris.core</code> 的一个前端，
-          CLI（<code>iris doctor / super / gpt</code>）用的是同一套代码。
-        </p>
-        <ul class="muted">
-          <li>GPL-3.0，参考 VioletToolBox 的设计与格式知识独立实现</li>
-          <li>不打包任何第三方二进制</li>
-          <li>所有解析在本地完成，不上传任何数据</li>
-        </ul>
-        <p class="muted small">服务端：Python 标准库 <code>http.server</code>，零第三方依赖。</p>
+      <header class="head">
+        <div><h1>Iris</h1><p class="sub">Android 设备工具链</p></div>
+      </header>
+      <div class="prose">
+        <p>核心库与界面完全分离：这个页面只是 <code>iris.core</code> 的一个前端，
+           CLI（<code>iris doctor / super / gpt</code>）用的是同一套代码。</p>
+        <div class="facts">
+          <div><span>许可证</span><b>GPL-3.0</b></div>
+          <div><span>依赖</span><b>仅 Python 标准库</b></div>
+          <div><span>数据</span><b>全程本地，不外传</b></div>
+          <div><span>第三方二进制</span><b>不打包</b></div>
+        </div>
       </div>
     </section>
   </main>

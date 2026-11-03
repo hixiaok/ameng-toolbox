@@ -3,272 +3,415 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Iris · Android 工具链</title>
+<title>Iris</title>
 <style>
 :root {
-  --bg: #0d0b14;
-  --panel: #15121f;
-  --panel-2: #1b1727;
-  --line: #2a2438;
-  --text: #e8e4f2;
-  --muted: #8f87a6;
-  --accent: #8b5cf6;
-  --accent-2: #a78bfa;
-  --ok: #34d399;
-  --warn: #fbbf24;
-  --fail: #f87171;
+  --bg: #0a0a0c;
+  --surface: #101014;
+  --surface-2: #16161b;
+  --surface-3: #1d1d24;
+  --line: rgba(255, 255, 255, .07);
+  --line-strong: rgba(255, 255, 255, .13);
+  --text: #ececf1;
+  --muted: #8b8b99;
+  --dim: #5c5c6b;
+  --accent: #7c5cff;
+  --accent-2: #a68cff;
+  --accent-soft: rgba(124, 92, 255, .13);
+  --ok: #3ecf8e;
+  --warn: #f0b429;
+  --fail: #f0616d;
+  --mono: "Cascadia Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
-  margin: 0;
-  height: 100%;
-  background: var(--bg);
+html, body { height: 100%; }
+
+body {
+  background:
+    radial-gradient(900px 520px at 18% -12%, rgba(124, 92, 255, .10), transparent 62%),
+    radial-gradient(700px 420px at 100% 0%, rgba(62, 207, 142, .04), transparent 55%),
+    var(--bg);
   color: var(--text);
-  font: 14px/1.55 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
-.app { display: flex; height: 100vh; }
-
-/* ---------- 侧栏 ---------- */
-.sidebar {
-  width: 208px;
-  flex: none;
-  background: linear-gradient(180deg, #17131f, #100d18);
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  padding: 18px 12px;
-}
-
-.brand { display: flex; gap: 10px; align-items: center; padding: 4px 8px 22px; }
-.logo {
-  width: 34px; height: 34px; border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent), #6d28d9);
-  display: grid; place-items: center;
-  font-size: 18px; color: #fff;
-  box-shadow: 0 0 18px rgba(139, 92, 246, .45);
-}
-.name { font-weight: 650; letter-spacing: .04em; }
-.ver { font-size: 11px; color: var(--muted); }
-
-nav { display: flex; flex-direction: column; gap: 4px; }
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border: 0; border-radius: 9px;
-  background: transparent; color: var(--muted);
-  font: inherit; text-align: left; cursor: pointer;
-  transition: background .15s, color .15s;
-}
-.nav-item span { font-size: 12px; opacity: .8; }
-.nav-item:hover { background: var(--panel-2); color: var(--text); }
-.nav-item.active {
-  background: rgba(139, 92, 246, .16);
-  color: #ddd6fe;
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-
-.sidebar-foot {
-  margin-top: auto; display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px; font-size: 12px; color: var(--muted);
-}
-.dot { width: 7px; height: 7px; border-radius: 50%; background: #555; }
-.dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-
-/* ---------- 主区 ---------- */
-.main { flex: 1; overflow-y: auto; padding: 30px 38px 60px; }
-.view { display: none; animation: fade .22s ease; }
-.view.active { display: block; }
-@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-
-.view-head {
-  display: flex; align-items: center; gap: 14px;
-  margin-bottom: 22px;
-}
-.view-head h1 { font-size: 20px; margin: 0; font-weight: 600; letter-spacing: .02em; }
-.head-actions { margin-left: auto; }
-
-.btn {
-  padding: 7px 15px; border-radius: 8px; cursor: pointer;
-  background: var(--panel-2); color: var(--text);
-  border: 1px solid var(--line); font: inherit;
-  transition: border-color .15s, background .15s;
-}
-.btn:hover { border-color: var(--accent); background: #221c30; }
-.btn:disabled { opacity: .5; cursor: default; }
-
+code, .mono { font-family: var(--mono); font-size: .93em; }
 .muted { color: var(--muted); }
-.small { font-size: 12px; }
 .hidden { display: none !important; }
 
-/* ---------- 检查项 ---------- */
-.summary { margin-bottom: 16px; color: var(--muted); }
+/* ---------------- 骨架 ---------------- */
+.shell { display: flex; height: 100vh; }
 
-.cards { display: grid; gap: 8px; }
-.card {
-  display: grid;
-  grid-template-columns: 26px 150px 1fr;
-  gap: 10px; align-items: baseline;
-  padding: 11px 14px;
-  background: var(--panel); border: 1px solid var(--line);
-  border-radius: 10px;
+.side {
+  width: 236px; flex: none;
+  display: flex; flex-direction: column;
+  padding: 22px 14px 16px;
+  border-right: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .018), transparent 40%);
 }
-.card .icon { font-size: 13px; }
-.card.ok .icon { color: var(--ok); }
-.card.warn .icon { color: var(--warn); }
-.card.fail .icon { color: var(--fail); }
-.card .key { color: var(--text); font-weight: 550; }
-.card .val { color: var(--muted); word-break: break-all; }
-.card .hint { grid-column: 2 / 4; color: var(--warn); font-size: 12.5px; }
 
-/* ---------- 设备 ---------- */
-.kv {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+.brand { display: flex; align-items: center; gap: 11px; padding: 2px 8px 26px; }
+
+.mark {
+  width: 32px; height: 32px; border-radius: 9px; flex: none;
+  background: conic-gradient(from 210deg, #7c5cff, #4c2fd8, #a68cff, #7c5cff);
+  box-shadow: 0 4px 16px rgba(124, 92, 255, .38), inset 0 1px 0 rgba(255, 255, 255, .28);
+  position: relative;
+}
+.mark::after {
+  content: ""; position: absolute; inset: 9px;
+  border-radius: 3px;
+  background: #0a0a0c;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.brand-name { font-size: 15px; font-weight: 650; letter-spacing: .01em; line-height: 1.2; }
+.brand-sub { font-size: 10.5px; color: var(--dim); letter-spacing: .09em; text-transform: uppercase; }
+
+nav { display: flex; flex-direction: column; gap: 3px; }
+
+.nav {
+  position: relative;
+  display: flex; align-items: center; gap: 11px;
+  height: 40px; padding: 0 11px;
+  border: 0; border-radius: 9px;
+  background: transparent; color: var(--muted);
+  font: inherit; font-size: 13.5px; text-align: left; cursor: pointer;
+  transition: background .16s, color .16s;
+}
+.nav svg {
+  width: 17px; height: 17px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+  opacity: .85;
+}
+.nav:hover { background: rgba(255, 255, 255, .035); color: var(--text); }
+.nav.active { background: var(--accent-soft); color: #ddd5ff; }
+.nav.active::before {
+  content: ""; position: absolute; left: 0; top: 10px; bottom: 10px;
+  width: 3px; border-radius: 0 3px 3px 0; background: var(--accent-2);
+}
+
+.status {
+  margin-top: auto;
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 12px; color: var(--dim);
+  background: rgba(255, 255, 255, .015);
+}
+.led {
+  width: 6px; height: 6px; border-radius: 50%; flex: none;
+  background: #45454f; transition: background .2s, box-shadow .2s;
+}
+.status.on { color: var(--muted); }
+.status.on .led { background: var(--ok); box-shadow: 0 0 9px rgba(62, 207, 142, .8); }
+
+/* ---------------- 内容区 ---------------- */
+.content { flex: 1; overflow-y: auto; padding: 40px 46px 72px; }
+.view { display: none; max-width: 960px; animation: rise .22s cubic-bezier(.2, .7, .3, 1); }
+.view.active { display: block; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 20px; margin-bottom: 26px;
+}
+h1 { font-size: 21px; font-weight: 620; letter-spacing: -.01em; }
+.sub { margin-top: 5px; font-size: 13px; color: var(--muted); }
+
+.btn {
+  height: 34px; padding: 0 15px;
+  border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2); color: var(--text);
+  font: inherit; font-size: 13px;
+  transition: background .16s, border-color .16s, transform .06s;
+}
+.btn:hover { background: var(--surface-3); border-color: rgba(255, 255, 255, .2); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* ---------------- 检查项 ---------------- */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; min-height: 26px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 26px; padding: 0 11px;
+  border-radius: 20px; font-size: 12px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--muted);
+}
+.chip i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.chip.ok { color: var(--ok); border-color: rgba(62, 207, 142, .28); background: rgba(62, 207, 142, .07); }
+.chip.warn { color: var(--warn); border-color: rgba(240, 180, 41, .28); background: rgba(240, 180, 41, .07); }
+.chip.fail { color: var(--fail); border-color: rgba(240, 97, 109, .3); background: rgba(240, 97, 109, .08); }
+
+.list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+
+.check {
+  display: grid;
+  grid-template-columns: 10px 148px 1fr;
+  gap: 14px; align-items: baseline;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.check:last-child { border-bottom: 0; }
+.check:hover { background: rgba(255, 255, 255, .018); }
+.check .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); margin-top: 6px; }
+.check.ok .dot { background: var(--ok); box-shadow: 0 0 8px rgba(62, 207, 142, .55); }
+.check.warn .dot { background: var(--warn); box-shadow: 0 0 8px rgba(240, 180, 41, .5); }
+.check.fail .dot { background: var(--fail); box-shadow: 0 0 8px rgba(240, 97, 109, .55); }
+
+.check .k { font-size: 13.5px; font-weight: 500; }
+.check .v { font-family: var(--mono); font-size: 12.5px; color: var(--muted); word-break: break-all; }
+.check .hint {
+  grid-column: 2 / 4; margin-top: 3px;
+  font-size: 12px; color: var(--warn); opacity: .9;
+}
+
+/* ---------------- 设备 ---------------- */
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
   gap: 10px;
 }
-.kv .item {
-  background: var(--panel); border: 1px solid var(--line);
-  border-radius: 10px; padding: 10px 13px;
+.stat {
+  padding: 13px 15px;
+  border: 1px solid var(--line); border-radius: 11px;
+  background: var(--surface);
 }
-.kv .k { font-size: 11.5px; color: var(--muted); letter-spacing: .04em; }
-.kv .v { margin-top: 3px; font-size: 13.5px; word-break: break-all; }
-
-.sub { font-size: 14px; margin: 26px 0 10px; color: var(--accent-2); font-weight: 550; }
-
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-th { color: var(--muted); font-weight: 500; font-size: 12px; }
-td.mono, code { font-family: "Cascadia Mono", Consolas, monospace; }
-
-.empty { text-align: center; padding: 70px 0; color: var(--muted); }
-
-/* ---------- 拖放区 ---------- */
-.dropzone {
-  border: 1.5px dashed var(--line); border-radius: 14px;
-  padding: 54px 20px; text-align: center; cursor: pointer;
-  transition: border-color .18s, background .18s;
+.stat span {
+  display: block; font-size: 10.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--dim);
 }
-.dropzone:hover, .dropzone.over {
+.stat b {
+  display: block; margin-top: 4px;
+  font-size: 14px; font-weight: 520; color: var(--text);
+  font-variant-numeric: tabular-nums; word-break: break-all;
+}
+
+.section-title {
+  margin: 30px 0 12px;
+  font-size: 12px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim);
+}
+
+.table-wrap { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: 10px 14px; text-align: left;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--dim); border-bottom: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, .015);
+}
+td {
+  padding: 11px 14px; font-size: 13px;
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: rgba(255, 255, 255, .022); }
+
+.placeholder { text-align: center; padding: 76px 0; color: var(--muted); }
+.placeholder .ph-icon {
+  width: 38px; height: 38px; margin-bottom: 14px;
+  fill: none; stroke: var(--dim); stroke-width: 1.4;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.placeholder p { font-size: 14px; color: var(--text); }
+.placeholder span { font-size: 12.5px; color: var(--dim); }
+
+/* ---------------- 镜像分析 ---------------- */
+.drop {
+  border: 1px dashed var(--line-strong); border-radius: 16px;
+  padding: 58px 24px; text-align: center; cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .012), transparent);
+  transition: border-color .18s, background .18s, box-shadow .18s;
+}
+.drop:hover, .drop.over {
   border-color: var(--accent);
-  background: rgba(139, 92, 246, .06);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 4px rgba(124, 92, 255, .06), 0 18px 50px -30px rgba(124, 92, 255, .9);
 }
-.dz-icon { font-size: 30px; color: var(--accent-2); }
-.dz-title { margin-top: 10px; }
-.dz-sub { margin-top: 4px; color: var(--muted); font-size: 12.5px; }
+.drop-icon {
+  width: 32px; height: 32px; margin-bottom: 12px;
+  fill: none; stroke: var(--accent-2); stroke-width: 1.5;
+  stroke-linecap: round; stroke-linejoin: round; opacity: .85;
+}
+.drop-title { font-size: 14.5px; font-weight: 520; }
+.drop-sub { margin-top: 5px; font-size: 12.5px; color: var(--dim); }
 
-.result-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.badge {
-  padding: 3px 10px; border-radius: 20px; font-size: 12px;
-  background: rgba(139, 92, 246, .18); color: #c4b5fd;
-  border: 1px solid rgba(139, 92, 246, .35);
-}
-.error {
-  margin-top: 16px; padding: 12px 14px; border-radius: 10px;
-  background: rgba(248, 113, 113, .08);
-  border: 1px solid rgba(248, 113, 113, .35);
-  color: #fca5a5; white-space: pre-wrap;
+.result-head { display: flex; align-items: center; gap: 12px; margin: 26px 0 14px; }
+.tag {
+  height: 24px; padding: 0 11px; display: inline-flex; align-items: center;
+  border-radius: 7px; font-size: 11.5px; letter-spacing: .04em;
+  color: #cfc4ff; background: var(--accent-soft);
+  border: 1px solid rgba(124, 92, 255, .3);
 }
 
-.about p { margin: 10px 0; }
-.about ul { padding-left: 20px; }
+.alert {
+  margin-top: 18px; padding: 13px 16px;
+  border-radius: 11px; font-size: 13px; white-space: pre-wrap;
+  background: rgba(240, 97, 109, .07);
+  border: 1px solid rgba(240, 97, 109, .28);
+  color: #ff9ba4;
+}
+
+.meta { margin-bottom: 14px; font-size: 12.5px; color: var(--muted); }
+.meta b { color: var(--text); font-weight: 520; }
+
+/* ---------------- 关于 ---------------- */
+.prose { max-width: 640px; color: var(--muted); font-size: 13.5px; line-height: 1.75; }
+.prose code {
+  padding: 1px 6px; border-radius: 5px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  color: var(--accent-2);
+}
+.facts {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px; margin-top: 22px;
+}
+.facts > div {
+  padding: 12px 14px; border: 1px solid var(--line);
+  border-radius: 11px; background: var(--surface);
+}
+.facts span { display: block; font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--dim); }
+.facts b { display: block; margin-top: 3px; font-size: 13.5px; font-weight: 520; color: var(--text); }
+
+/* ---------------- 滚动条 ---------------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .09);
+  border: 3px solid transparent; background-clip: content-box;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .16); background-clip: content-box; }
+
+@media (max-width: 860px) {
+  .side { width: 64px; padding: 20px 8px 14px; }
+  .brand-text, .nav span, .status span { display: none; }
+  .nav { justify-content: center; padding: 0; }
+  .content { padding: 28px 20px 60px; }
+  .check { grid-template-columns: 10px 1fr; }
+  .check .v { grid-column: 2; }
+}
 
 </style>
 <script>window.__IRIS_DATA__ = {"/api/doctor": {"platform": "Windows-10-10.0.19045-SP0", "python": "3.13.15", "checks": [{"name": "python", "status": "ok", "detail": "3.13.15", "hint": ""}, {"name": "os", "status": "ok", "detail": "Windows 10", "hint": ""}, {"name": "adb", "status": "ok", "detail": "D:\\deepseek\\platform-tools\\adb.exe | Android Debug Bridge version 1.0.41", "hint": ""}, {"name": "fastboot", "status": "warn", "detail": "PATH 中未找到", "hint": "platform-tools 里自带，加入 PATH 即可"}, {"name": "devices", "status": "warn", "detail": "没有检测到设备", "hint": "检查 USB 调试、数据线、驱动；Fastboot 模式请用 `iris fastboot` 相关命令"}, {"name": "windows driver", "status": "warn", "detail": "驱动问题无法自动检测", "hint": "设备管理器里出现黄色感叹号时装 Google USB Driver 或厂商驱动"}]}, "/api/info_error": "没有处于 device 状态的设备", "/api/analyze": {"kind": "lp", "metadata": {"source": "primary", "geometry": {"offset": 4096, "metadata_max_size": 65536, "metadata_slot_count": 2, "logical_block_size": 4096}, "header": {"offset": 8192, "version": "10.2", "header_size": 256, "tables_size": 364, "flags": 0}, "warnings": [], "partition_count": 3, "logical_size": 2883584, "groups": [{"name": "default", "flags": 0, "maximum_size": 0}], "block_devices": [{"partition_name": "super", "size": 1048576, "first_logical_sector": 0, "alignment": 1048576, "flags": 0}], "partitions": [{"name": "system_a", "size_bytes": 2097152, "size_human": "2.0MiB", "attributes": 1, "group_index": 0, "extent_count": 2, "extents": [{"num_sectors": 2048, "target_type": "linear", "target_data": 1024, "target_source": 0, "byte_offset": 524288}, {"num_sectors": 2048, "target_type": "linear", "target_data": 4096, "target_source": 0, "byte_offset": 2097152}]}, {"name": "vendor_a", "size_bytes": 524288, "size_human": "512.0KiB", "attributes": 1, "group_index": 0, "extent_count": 1, "extents": [{"num_sectors": 1024, "target_type": "linear", "target_data": 8192, "target_source": 0, "byte_offset": 4194304}]}, {"name": "product_a", "size_bytes": 262144, "size_human": "256.0KiB", "attributes": 1, "group_index": 0, "extent_count": 1, "extents": [{"num_sectors": 512, "target_type": "linear", "target_data": 9216, "target_source": 0, "byte_offset": 4718592}]}]}}};</script>
 </head>
 <body>
-<div class="app">
-  <aside class="sidebar">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M13.4 10.6 17 7"/><path d="M4.5 18a9 9 0 1 1 15 0"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 8.5 4.5L12 12 3.5 7.5 12 3Z"/><path d="m4 12 8 4.3 8-4.3"/><path d="m4 16.5 8 4.3 8-4.3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.9"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
+</svg>
+
+<div class="shell">
+  <aside class="side">
     <div class="brand">
-      <div class="logo">◈</div>
-      <div>
-        <div class="name">Iris</div>
-        <div class="ver" id="version">v0.1</div>
+      <div class="mark"></div>
+      <div class="brand-text">
+        <div class="brand-name">Iris</div>
+        <div class="brand-sub">Android Toolchain</div>
       </div>
     </div>
 
-    <nav id="nav">
-      <button class="nav-item active" data-view="doctor"><span>◎</span>环境自检</button>
-      <button class="nav-item" data-view="device"><span>▤</span>设备</button>
-      <button class="nav-item" data-view="image"><span>▣</span>镜像分析</button>
-      <button class="nav-item" data-view="about"><span>◷</span>关于</button>
+    <nav>
+      <button class="nav active" data-view="doctor"><svg><use href="#i-gauge"/></svg><span>环境自检</span></button>
+      <button class="nav" data-view="device"><svg><use href="#i-phone"/></svg><span>设备</span></button>
+      <button class="nav" data-view="image"><svg><use href="#i-layers"/></svg><span>镜像分析</span></button>
+      <button class="nav" data-view="about"><svg><use href="#i-info"/></svg><span>关于</span></button>
     </nav>
 
-    <div class="sidebar-foot">
-      <div class="dot" id="conn-dot"></div>
-      <span id="conn-text">未连接</span>
+    <div class="status" id="status-chip">
+      <i class="led"></i><span id="status-text">未连接</span>
     </div>
   </aside>
 
-  <main class="main">
+  <main class="content">
     <!-- 环境自检 -->
     <section class="view active" id="view-doctor">
-      <header class="view-head">
-        <h1>环境自检</h1>
+      <header class="head">
+        <div>
+          <h1>环境自检</h1>
+          <p class="sub">检查 adb、驱动与设备授权状态，每项都给处理建议</p>
+        </div>
         <button class="btn" id="btn-doctor">重新检测</button>
       </header>
-      <div id="doctor-summary" class="summary"></div>
-      <div id="doctor-list" class="cards"></div>
+      <div class="chips" id="doctor-summary"></div>
+      <div class="list" id="doctor-list"></div>
     </section>
 
     <!-- 设备 -->
     <section class="view" id="view-device">
-      <header class="view-head">
-        <h1>设备画像</h1>
-        <div class="head-actions">
-          <button class="btn" id="btn-refresh">重新探测</button>
+      <header class="head">
+        <div>
+          <h1>设备画像</h1>
+          <p class="sub">一次性探测所有因设备而异的事实，后续功能只读这份画像</p>
         </div>
+        <button class="btn" id="btn-refresh">重新探测</button>
       </header>
-      <div id="device-empty" class="empty">
-        <p>没有检测到设备。</p>
-        <p class="muted">连接手机并开启 USB 调试后点「重新探测」。</p>
+      <div class="placeholder" id="device-empty">
+        <svg class="ph-icon"><use href="#i-phone"/></svg>
+        <p>没有检测到设备</p>
+        <span>连接手机并开启 USB 调试后点「重新探测」</span>
       </div>
       <div id="device-content" class="hidden">
-        <div class="kv" id="device-kv"></div>
-        <h2 class="sub">探测明细</h2>
-        <div id="probe-table"></div>
+        <div class="grid" id="device-kv"></div>
+        <h2 class="section-title">探测明细</h2>
+        <div id="probe-table" class="table-wrap"></div>
       </div>
     </section>
 
     <!-- 镜像分析 -->
     <section class="view" id="view-image">
-      <header class="view-head">
-        <h1>镜像分析</h1>
-        <span class="muted">自动识别 GPT / super(LP) / sparse</span>
+      <header class="head">
+        <div>
+          <h1>镜像分析</h1>
+          <p class="sub">自动识别 GPT 分区表 / super 动态分区 / sparse 稀疏镜像</p>
+        </div>
       </header>
 
-      <div class="dropzone" id="dropzone">
+      <div class="drop" id="dropzone">
         <input type="file" id="file" hidden>
-        <div class="dz-icon">⇪</div>
-        <div class="dz-title">把镜像拖进来，或点击选择</div>
-        <div class="dz-sub">.img / .bin 均可 · 大文件会边传边解析</div>
+        <svg class="drop-icon"><use href="#i-upload"/></svg>
+        <div class="drop-title">拖入镜像文件</div>
+        <div class="drop-sub">或点击选择 · .img / .bin 均可</div>
       </div>
 
       <div id="image-result" class="hidden">
         <div class="result-head">
-          <span class="badge" id="image-kind">-</span>
+          <span class="tag" id="image-kind">-</span>
           <span class="muted" id="image-name"></span>
         </div>
         <div id="image-body"></div>
       </div>
-      <div id="image-error" class="error hidden"></div>
+      <div id="image-error" class="alert hidden"></div>
     </section>
 
     <!-- 关于 -->
     <section class="view" id="view-about">
-      <header class="view-head"><h1>关于</h1></header>
-      <div class="about">
-        <p><b>Iris</b> —— 面向 Android 设备的多功能工具链。</p>
-        <p class="muted">
-          核心库与界面完全分离：本页面只是 <code>iris.core</code> 的一个前端，
-          CLI（<code>iris doctor / super / gpt</code>）用的是同一套代码。
-        </p>
-        <ul class="muted">
-          <li>GPL-3.0，参考 VioletToolBox 的设计与格式知识独立实现</li>
-          <li>不打包任何第三方二进制</li>
-          <li>所有解析在本地完成，不上传任何数据</li>
-        </ul>
-        <p class="muted small">服务端：Python 标准库 <code>http.server</code>，零第三方依赖。</p>
+      <header class="head">
+        <div><h1>Iris</h1><p class="sub">Android 设备工具链</p></div>
+      </header>
+      <div class="prose">
+        <p>核心库与界面完全分离：这个页面只是 <code>iris.core</code> 的一个前端，
+           CLI（<code>iris doctor / super / gpt</code>）用的是同一套代码。</p>
+        <div class="facts">
+          <div><span>许可证</span><b>GPL-3.0</b></div>
+          <div><span>依赖</span><b>仅 Python 标准库</b></div>
+          <div><span>数据</span><b>全程本地，不外传</b></div>
+          <div><span>第三方二进制</span><b>不打包</b></div>
+        </div>
       </div>
     </section>
   </main>
@@ -298,13 +441,19 @@ async function api(path, options = {}) {
 }
 
 const $ = (sel) => document.querySelector(sel);
-const el = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+function human(n) {
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let v = n, i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return (i === 0 ? v : v.toFixed(1)) + units[i];
+}
+
 /* ---------- 导航 ---------- */
-document.querySelectorAll(".nav-item").forEach((btn) => {
+document.querySelectorAll(".nav").forEach((btn) => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".nav").forEach((b) => b.classList.remove("active"));
     document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
     btn.classList.add("active");
     $("#view-" + btn.dataset.view).classList.add("active");
@@ -313,50 +462,50 @@ document.querySelectorAll(".nav-item").forEach((btn) => {
 });
 
 /* ---------- 环境自检 ---------- */
-const ICONS = { ok: "✓", warn: "!", fail: "✗" };
-
 async function loadDoctor() {
   const list = $("#doctor-list");
-  const summary = $("#doctor-summary");
-  list.innerHTML = '<div class="card"><span class="icon">…</span><span class="key">检测中</span><span class="val"></span></div>';
+  const chips = $("#doctor-summary");
+  list.innerHTML = "";
+  chips.innerHTML = '<span class="chip">检测中…</span>';
+
   try {
     const data = await api("/api/doctor");
-    const fails = data.checks.filter((c) => c.status === "fail").length;
-    const warns = data.checks.filter((c) => c.status === "warn").length;
-    summary.textContent = `${data.platform} · Python ${data.python} · ${fails} 项失败，${warns} 项警告`;
+    const count = (s) => data.checks.filter((c) => c.status === s).length;
+    chips.innerHTML = [
+      `<span class="chip fail"><i></i>${count("fail")} 项失败</span>`,
+      `<span class="chip warn"><i></i>${count("warn")} 项警告</span>`,
+      `<span class="chip ok"><i></i>${count("ok")} 项通过</span>`,
+      `<span class="chip">${esc(data.platform)} · Python ${esc(data.python)}</span>`,
+    ].join("");
 
-    list.innerHTML = "";
-    for (const c of data.checks) {
-      const card = el(`
-        <div class="card ${c.status}">
-          <span class="icon">${ICONS[c.status] || "?"}</span>
-          <span class="key">${esc(c.name)}</span>
-          <span class="val">${esc(c.detail)}</span>
-        </div>`);
-      if (c.hint && c.status !== "ok") {
-        card.appendChild(el(`<div class="hint">↳ ${esc(c.hint)}</div>`));
-      }
-      list.appendChild(card);
-    }
-    const hasDevice = data.checks.some((c) => c.name.startsWith("device ") && c.status === "ok");
-    setConn(hasDevice);
+    list.innerHTML = data.checks.map((c) => `
+      <div class="check ${c.status}">
+        <i class="dot"></i>
+        <div class="k">${esc(c.name)}</div>
+        <div class="v">${esc(c.detail)}</div>
+        ${c.hint && c.status !== "ok" ? `<div class="hint">↳ ${esc(c.hint)}</div>` : ""}
+      </div>`).join("");
+
+    setStatus(data.checks.some((c) => c.name.startsWith("device ") && c.status === "ok"));
   } catch (e) {
-    summary.textContent = "检测失败";
-    list.innerHTML = `<div class="card fail"><span class="icon">✗</span><span class="key">错误</span><span class="val">${esc(e.message)}</span></div>`;
+    chips.innerHTML = '<span class="chip fail"><i></i>检测失败</span>';
+    list.innerHTML = `
+      <div class="check fail"><i class="dot"></i><div class="k">错误</div>
+        <div class="v">${esc(e.message)}</div></div>`;
   }
 }
 
-function setConn(on) {
-  $("#conn-dot").classList.toggle("on", on);
-  $("#conn-text").textContent = on ? "设备已连接" : "未连接";
+function setStatus(on) {
+  $("#status-chip").classList.toggle("on", on);
+  $("#status-text").textContent = on ? "设备已连接" : "未连接";
 }
 
 /* ---------- 设备 ---------- */
-const KV_ORDER = [
-  ["序列号", "serial"], ["机型", "model_line"], ["代号", "codename"], ["SoC", "soc_line"],
-  ["系统", "android_line"], ["架构", "abi"], ["安全补丁", "security_patch"],
-  ["A/B", "ab_line"], ["ROOT", "root_line"], ["by-name 根", "by_name_root"],
-  ["块设备", "block_device"], ["已知分区", "partitions_line"],
+const KV = [
+  ["序列号", "serial"], ["机型", "model"], ["代号", "codename"], ["SoC", "soc"],
+  ["系统", "android"], ["架构", "abi"], ["安全补丁", "patch"],
+  ["A/B 槽位", "ab"], ["ROOT", "root"], ["by-name 根", "by_name"],
+  ["块设备", "block"], ["已知分区", "parts"],
 ];
 
 async function loadDevice(refresh) {
@@ -366,35 +515,36 @@ async function loadDevice(refresh) {
     const p = await api("/api/info" + (refresh ? "?refresh=1" : ""));
     empty.classList.add("hidden");
     content.classList.remove("hidden");
-    setConn(true);
+    setStatus(true);
 
-    const view = {
+    const v = {
       serial: p.serial,
-      model_line: `${p.brand || ""} ${p.model || ""}`.trim() || "-",
+      model: `${p.brand || ""} ${p.model || ""}`.trim() || "-",
       codename: p.codename || "-",
-      soc_line: `${p.soc_manufacturer || ""} ${p.soc_model || ""}`.trim() || "-",
-      android_line: `Android ${p.android_release || "?"} (SDK ${p.sdk || "?"})`,
+      soc: `${p.soc_manufacturer || ""} ${p.soc_model || ""}`.trim() || "-",
+      android: `Android ${p.android_release || "?"} · SDK ${p.sdk || "?"}`,
       abi: p.abi || "-",
-      security_patch: p.security_patch || "未知",
-      ab_line: p.ab_update ? `是（槽位 ${p.slot_suffix || "?"}）` : "否（单槽位）",
-      root_line: p.root ? "是" : "否",
-      by_name_root: p.by_name_root || "未探测到",
-      block_device: p.block_device || "未知",
-      partitions_line: p.partitions ? `${Object.keys(p.partitions).length} 个` : "0",
+      patch: p.security_patch || "未知",
+      ab: p.ab_update ? `A/B（${p.slot_suffix || "?"}）` : "单槽位",
+      root: p.root ? "已 ROOT" : "未 ROOT",
+      by_name: p.by_name_root || "未探测到",
+      block: p.block_device || "未知",
+      parts: p.partitions ? `${Object.keys(p.partitions).length} 个` : "0",
     };
 
-    $("#device-kv").innerHTML = KV_ORDER.map(([label, key]) => `
-      <div class="item"><div class="k">${esc(label)}</div><div class="v">${esc(view[key])}</div></div>
-    `).join("");
+    $("#device-kv").innerHTML = KV.map(([label, key]) =>
+      `<div class="stat"><span>${esc(label)}</span><b>${esc(v[key])}</b></div>`).join("");
 
     const rows = (p.probes || []).map((pr) => `
       <tr><td class="mono">${esc(pr.name)}</td>
-          <td>${pr.ok ? "✓" : "✗"}</td>
+          <td>${pr.ok ? '<span style="color:var(--ok)">✓</span>' : '<span style="color:var(--fail)">✗</span>'}</td>
           <td class="mono muted">${esc(pr.evidence)}</td></tr>`).join("");
+
     $("#probe-table").innerHTML = `
-      <table><thead><tr><th>探测项</th><th>结果</th><th>证据</th></tr></thead><tbody>${rows}</tbody></table>`;
+      <table><thead><tr><th>探测项</th><th>结果</th><th>证据</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
   } catch (e) {
-    setConn(false);
+    setStatus(false);
     content.classList.add("hidden");
     empty.classList.remove("hidden");
     empty.querySelector("p").textContent = e.message;
@@ -449,50 +599,46 @@ async function upload(file) {
 }
 
 function renderImage(data) {
-  $("#image-kind").textContent = { gpt: "GPT 分区表", lp: "super / LP 元数据", sparse: "sparse 镜像" }[data.kind] || data.kind;
+  $("#image-kind").textContent =
+    { gpt: "GPT 分区表", lp: "super 元数据", sparse: "sparse 镜像" }[data.kind] || data.kind;
   const body = $("#image-body");
 
   if (data.kind === "gpt") {
     const t = data.table;
     const rows = t.partitions.map((p) => `
-      <tr><td>${p.index}</td><td class="mono">${esc(p.name) || "(未命名)"}</td>
+      <tr><td class="muted">${p.index}</td><td class="mono">${esc(p.name) || "(未命名)"}</td>
           <td class="mono muted">${p.type.slice(0, 8)}</td>
           <td class="mono">${p.first_lba}</td>
           <td>${human(p.sectors * t.sector_size)}</td></tr>`).join("");
     body.innerHTML = `
-      <p class="muted">扇区 ${t.sector_size}B · ${t.source === "primary" ? "主表" : "备份表"} ·
-         CRC ${t.crc_ok ? "通过" : "异常"} · 磁盘 ${esc(t.disk_guid)}</p>
-      <table><thead><tr><th>#</th><th>名称</th><th>类型</th><th>起始 LBA</th><th>大小</th></tr></thead>
-      <tbody>${rows}</tbody></table>`;
+      <p class="meta">扇区 <b>${t.sector_size}B</b> · ${t.source === "primary" ? "主表" : "备份表"} ·
+         CRC <b>${t.crc_ok ? "通过" : "异常"}</b> · 磁盘 <b class="mono">${esc(t.disk_guid)}</b></p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>名称</th><th>类型</th><th>起始 LBA</th><th>大小</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
   }
 
   if (data.kind === "lp") {
     const m = data.metadata;
     const rows = m.partitions.map((p) => `
       <tr><td class="mono">${esc(p.name)}</td><td>${p.size_human}</td>
-          <td>${p.extent_count}</td><td class="muted">${p.group_index}</td></tr>`).join("");
+          <td class="muted">${p.extent_count}</td><td class="muted">${p.group_index}</td></tr>`).join("");
     body.innerHTML = `
-      <p class="muted">版本 ${m.header.version} · header ${m.header.header_size}B ·
-         块大小 ${m.geometry.logical_block_size}B · 逻辑总容量 ${human(m.logical_size)}
-         ${m.warnings.length ? "· ⚠ " + esc(m.warnings.join("；")) : ""}</p>
-      <table><thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th></tr></thead>
-      <tbody>${rows}</tbody></table>`;
+      <p class="meta">版本 <b>${m.header.version}</b> · header <b>${m.header.header_size}B</b> ·
+         块大小 <b>${m.geometry.logical_block_size}B</b> · 逻辑容量 <b>${human(m.logical_size)}</b>
+         ${m.warnings.length ? `· <span style="color:var(--warn)">⚠ ${esc(m.warnings.join("；"))}</span>` : ""}</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
   }
 
   if (data.kind === "sparse") {
     const s = data.info;
     const stats = Object.entries(s.chunk_stats).map(([k, v]) => `${k} ×${v}`).join("，");
     body.innerHTML = `
-      <p class="muted">块大小 ${s.block_size}B · ${s.total_blocks} 块 ·
-         展开后 ${human(s.expanded_size)} · ${s.total_chunks} 个 chunk（${esc(stats)}）</p>`;
+      <p class="meta">块大小 <b>${s.block_size}B</b> · <b>${s.total_blocks}</b> 块 ·
+         展开后 <b>${human(s.expanded_size)}</b> · <b>${s.total_chunks}</b> 个 chunk（${esc(stats)}）</p>`;
   }
-}
-
-function human(n) {
-  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v = n, i = 0;
-  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
-  return (i === 0 ? v : v.toFixed(1)) + units[i];
 }
 
 /* ---------- 启动 ---------- */

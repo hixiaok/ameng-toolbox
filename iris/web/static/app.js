@@ -20,13 +20,19 @@ async function api(path, options = {}) {
 }
 
 const $ = (sel) => document.querySelector(sel);
-const el = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+function human(n) {
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let v = n, i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return (i === 0 ? v : v.toFixed(1)) + units[i];
+}
+
 /* ---------- 导航 ---------- */
-document.querySelectorAll(".nav-item").forEach((btn) => {
+document.querySelectorAll(".nav").forEach((btn) => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".nav").forEach((b) => b.classList.remove("active"));
     document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
     btn.classList.add("active");
     $("#view-" + btn.dataset.view).classList.add("active");
@@ -35,50 +41,50 @@ document.querySelectorAll(".nav-item").forEach((btn) => {
 });
 
 /* ---------- 环境自检 ---------- */
-const ICONS = { ok: "✓", warn: "!", fail: "✗" };
-
 async function loadDoctor() {
   const list = $("#doctor-list");
-  const summary = $("#doctor-summary");
-  list.innerHTML = '<div class="card"><span class="icon">…</span><span class="key">检测中</span><span class="val"></span></div>';
+  const chips = $("#doctor-summary");
+  list.innerHTML = "";
+  chips.innerHTML = '<span class="chip">检测中…</span>';
+
   try {
     const data = await api("/api/doctor");
-    const fails = data.checks.filter((c) => c.status === "fail").length;
-    const warns = data.checks.filter((c) => c.status === "warn").length;
-    summary.textContent = `${data.platform} · Python ${data.python} · ${fails} 项失败，${warns} 项警告`;
+    const count = (s) => data.checks.filter((c) => c.status === s).length;
+    chips.innerHTML = [
+      `<span class="chip fail"><i></i>${count("fail")} 项失败</span>`,
+      `<span class="chip warn"><i></i>${count("warn")} 项警告</span>`,
+      `<span class="chip ok"><i></i>${count("ok")} 项通过</span>`,
+      `<span class="chip">${esc(data.platform)} · Python ${esc(data.python)}</span>`,
+    ].join("");
 
-    list.innerHTML = "";
-    for (const c of data.checks) {
-      const card = el(`
-        <div class="card ${c.status}">
-          <span class="icon">${ICONS[c.status] || "?"}</span>
-          <span class="key">${esc(c.name)}</span>
-          <span class="val">${esc(c.detail)}</span>
-        </div>`);
-      if (c.hint && c.status !== "ok") {
-        card.appendChild(el(`<div class="hint">↳ ${esc(c.hint)}</div>`));
-      }
-      list.appendChild(card);
-    }
-    const hasDevice = data.checks.some((c) => c.name.startsWith("device ") && c.status === "ok");
-    setConn(hasDevice);
+    list.innerHTML = data.checks.map((c) => `
+      <div class="check ${c.status}">
+        <i class="dot"></i>
+        <div class="k">${esc(c.name)}</div>
+        <div class="v">${esc(c.detail)}</div>
+        ${c.hint && c.status !== "ok" ? `<div class="hint">↳ ${esc(c.hint)}</div>` : ""}
+      </div>`).join("");
+
+    setStatus(data.checks.some((c) => c.name.startsWith("device ") && c.status === "ok"));
   } catch (e) {
-    summary.textContent = "检测失败";
-    list.innerHTML = `<div class="card fail"><span class="icon">✗</span><span class="key">错误</span><span class="val">${esc(e.message)}</span></div>`;
+    chips.innerHTML = '<span class="chip fail"><i></i>检测失败</span>';
+    list.innerHTML = `
+      <div class="check fail"><i class="dot"></i><div class="k">错误</div>
+        <div class="v">${esc(e.message)}</div></div>`;
   }
 }
 
-function setConn(on) {
-  $("#conn-dot").classList.toggle("on", on);
-  $("#conn-text").textContent = on ? "设备已连接" : "未连接";
+function setStatus(on) {
+  $("#status-chip").classList.toggle("on", on);
+  $("#status-text").textContent = on ? "设备已连接" : "未连接";
 }
 
 /* ---------- 设备 ---------- */
-const KV_ORDER = [
-  ["序列号", "serial"], ["机型", "model_line"], ["代号", "codename"], ["SoC", "soc_line"],
-  ["系统", "android_line"], ["架构", "abi"], ["安全补丁", "security_patch"],
-  ["A/B", "ab_line"], ["ROOT", "root_line"], ["by-name 根", "by_name_root"],
-  ["块设备", "block_device"], ["已知分区", "partitions_line"],
+const KV = [
+  ["序列号", "serial"], ["机型", "model"], ["代号", "codename"], ["SoC", "soc"],
+  ["系统", "android"], ["架构", "abi"], ["安全补丁", "patch"],
+  ["A/B 槽位", "ab"], ["ROOT", "root"], ["by-name 根", "by_name"],
+  ["块设备", "block"], ["已知分区", "parts"],
 ];
 
 async function loadDevice(refresh) {
@@ -88,35 +94,36 @@ async function loadDevice(refresh) {
     const p = await api("/api/info" + (refresh ? "?refresh=1" : ""));
     empty.classList.add("hidden");
     content.classList.remove("hidden");
-    setConn(true);
+    setStatus(true);
 
-    const view = {
+    const v = {
       serial: p.serial,
-      model_line: `${p.brand || ""} ${p.model || ""}`.trim() || "-",
+      model: `${p.brand || ""} ${p.model || ""}`.trim() || "-",
       codename: p.codename || "-",
-      soc_line: `${p.soc_manufacturer || ""} ${p.soc_model || ""}`.trim() || "-",
-      android_line: `Android ${p.android_release || "?"} (SDK ${p.sdk || "?"})`,
+      soc: `${p.soc_manufacturer || ""} ${p.soc_model || ""}`.trim() || "-",
+      android: `Android ${p.android_release || "?"} · SDK ${p.sdk || "?"}`,
       abi: p.abi || "-",
-      security_patch: p.security_patch || "未知",
-      ab_line: p.ab_update ? `是（槽位 ${p.slot_suffix || "?"}）` : "否（单槽位）",
-      root_line: p.root ? "是" : "否",
-      by_name_root: p.by_name_root || "未探测到",
-      block_device: p.block_device || "未知",
-      partitions_line: p.partitions ? `${Object.keys(p.partitions).length} 个` : "0",
+      patch: p.security_patch || "未知",
+      ab: p.ab_update ? `A/B（${p.slot_suffix || "?"}）` : "单槽位",
+      root: p.root ? "已 ROOT" : "未 ROOT",
+      by_name: p.by_name_root || "未探测到",
+      block: p.block_device || "未知",
+      parts: p.partitions ? `${Object.keys(p.partitions).length} 个` : "0",
     };
 
-    $("#device-kv").innerHTML = KV_ORDER.map(([label, key]) => `
-      <div class="item"><div class="k">${esc(label)}</div><div class="v">${esc(view[key])}</div></div>
-    `).join("");
+    $("#device-kv").innerHTML = KV.map(([label, key]) =>
+      `<div class="stat"><span>${esc(label)}</span><b>${esc(v[key])}</b></div>`).join("");
 
     const rows = (p.probes || []).map((pr) => `
       <tr><td class="mono">${esc(pr.name)}</td>
-          <td>${pr.ok ? "✓" : "✗"}</td>
+          <td>${pr.ok ? '<span style="color:var(--ok)">✓</span>' : '<span style="color:var(--fail)">✗</span>'}</td>
           <td class="mono muted">${esc(pr.evidence)}</td></tr>`).join("");
+
     $("#probe-table").innerHTML = `
-      <table><thead><tr><th>探测项</th><th>结果</th><th>证据</th></tr></thead><tbody>${rows}</tbody></table>`;
+      <table><thead><tr><th>探测项</th><th>结果</th><th>证据</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
   } catch (e) {
-    setConn(false);
+    setStatus(false);
     content.classList.add("hidden");
     empty.classList.remove("hidden");
     empty.querySelector("p").textContent = e.message;
@@ -171,50 +178,46 @@ async function upload(file) {
 }
 
 function renderImage(data) {
-  $("#image-kind").textContent = { gpt: "GPT 分区表", lp: "super / LP 元数据", sparse: "sparse 镜像" }[data.kind] || data.kind;
+  $("#image-kind").textContent =
+    { gpt: "GPT 分区表", lp: "super 元数据", sparse: "sparse 镜像" }[data.kind] || data.kind;
   const body = $("#image-body");
 
   if (data.kind === "gpt") {
     const t = data.table;
     const rows = t.partitions.map((p) => `
-      <tr><td>${p.index}</td><td class="mono">${esc(p.name) || "(未命名)"}</td>
+      <tr><td class="muted">${p.index}</td><td class="mono">${esc(p.name) || "(未命名)"}</td>
           <td class="mono muted">${p.type.slice(0, 8)}</td>
           <td class="mono">${p.first_lba}</td>
           <td>${human(p.sectors * t.sector_size)}</td></tr>`).join("");
     body.innerHTML = `
-      <p class="muted">扇区 ${t.sector_size}B · ${t.source === "primary" ? "主表" : "备份表"} ·
-         CRC ${t.crc_ok ? "通过" : "异常"} · 磁盘 ${esc(t.disk_guid)}</p>
-      <table><thead><tr><th>#</th><th>名称</th><th>类型</th><th>起始 LBA</th><th>大小</th></tr></thead>
-      <tbody>${rows}</tbody></table>`;
+      <p class="meta">扇区 <b>${t.sector_size}B</b> · ${t.source === "primary" ? "主表" : "备份表"} ·
+         CRC <b>${t.crc_ok ? "通过" : "异常"}</b> · 磁盘 <b class="mono">${esc(t.disk_guid)}</b></p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>名称</th><th>类型</th><th>起始 LBA</th><th>大小</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
   }
 
   if (data.kind === "lp") {
     const m = data.metadata;
     const rows = m.partitions.map((p) => `
       <tr><td class="mono">${esc(p.name)}</td><td>${p.size_human}</td>
-          <td>${p.extent_count}</td><td class="muted">${p.group_index}</td></tr>`).join("");
+          <td class="muted">${p.extent_count}</td><td class="muted">${p.group_index}</td></tr>`).join("");
     body.innerHTML = `
-      <p class="muted">版本 ${m.header.version} · header ${m.header.header_size}B ·
-         块大小 ${m.geometry.logical_block_size}B · 逻辑总容量 ${human(m.logical_size)}
-         ${m.warnings.length ? "· ⚠ " + esc(m.warnings.join("；")) : ""}</p>
-      <table><thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th></tr></thead>
-      <tbody>${rows}</tbody></table>`;
+      <p class="meta">版本 <b>${m.header.version}</b> · header <b>${m.header.header_size}B</b> ·
+         块大小 <b>${m.geometry.logical_block_size}B</b> · 逻辑容量 <b>${human(m.logical_size)}</b>
+         ${m.warnings.length ? `· <span style="color:var(--warn)">⚠ ${esc(m.warnings.join("；"))}</span>` : ""}</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>分区</th><th>大小</th><th>extent 数</th><th>组</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
   }
 
   if (data.kind === "sparse") {
     const s = data.info;
     const stats = Object.entries(s.chunk_stats).map(([k, v]) => `${k} ×${v}`).join("，");
     body.innerHTML = `
-      <p class="muted">块大小 ${s.block_size}B · ${s.total_blocks} 块 ·
-         展开后 ${human(s.expanded_size)} · ${s.total_chunks} 个 chunk（${esc(stats)}）</p>`;
+      <p class="meta">块大小 <b>${s.block_size}B</b> · <b>${s.total_blocks}</b> 块 ·
+         展开后 <b>${human(s.expanded_size)}</b> · <b>${s.total_chunks}</b> 个 chunk（${esc(stats)}）</p>`;
   }
-}
-
-function human(n) {
-  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let v = n, i = 0;
-  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
-  return (i === 0 ? v : v.toFixed(1)) + units[i];
 }
 
 /* ---------- 启动 ---------- */
