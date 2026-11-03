@@ -15,6 +15,8 @@
 | `iris devices` | 列出在线设备 |
 | `iris info` | 设备画像：机型、SoC、A/B 槽位、安全补丁、by-name 根路径、分区表 |
 | `iris gpt <img>` | 离线解析 GPT：主/备表、CRC 校验、分区起止与大小 |
+| `iris super <img>` | 离线解析 super：LP geometry/header、分区与 extent 布局、checksum 告警 |
+| `iris sparse <img>` | 识别 sparse 镜像，`--unpack` 展开为 raw |
 
 未实现（见路线图）：payload 解包、super 合并、AVB 签名、fastboot 刷写、EDL。
 

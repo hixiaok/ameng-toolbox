@@ -16,6 +16,8 @@ from . import __version__
 from .core import diag
 from .core.adb import Adb
 from .core.errors import IrisError
+from .core.image import lp as lp_mod
+from .core.image import sparse as sparse_mod
 from .core.partition import gpt as gpt_mod
 from .core.profile import load_cached, probe, save
 
@@ -154,6 +156,59 @@ def cmd_gpt(args) -> int:
     return 0
 
 
+def cmd_super(args) -> int:
+    meta = lp_mod.read_path(args.image)
+    if args.json:
+        print(json.dumps(meta.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+
+    print(f"文件  : {Path(args.image)}")
+    print(f"版本  : {meta.header.major}.{meta.header.minor}（header {meta.header.header_size}B，"
+          f"flags 0x{meta.header.flags:X}）")
+    print(f"块大小: {meta.geometry.logical_block_size}B")
+    print(f"逻辑总容量: {lp_mod.human_size(meta.logical_size)} / {len(meta.partitions)} 个分区")
+    if meta.warnings:
+        print("⚠ " + "；".join(meta.warnings))
+    print()
+
+    rows = []
+    for p in meta.partitions:
+        attrs = ",".join(a for a, on in (
+            ("ro", p.readonly), ("slotsuffix", p.slot_suffixed),
+            ("updated", bool(p.attributes & lp_mod.ATTR_UPDATED)),
+            ("disabled", bool(p.attributes & lp_mod.ATTR_DISABLED)),
+        ) if on) or "-"
+        rows.append([p.name, lp_mod.human_size(p.size_bytes), len(p.extents), attrs])
+    print(_table(rows, ["分区", "大小", "extent 数", "属性"]))
+
+    if args.verbose:
+        print("\nextent 明细：")
+        for p in meta.partitions:
+            for i, e in enumerate(p.extents):
+                kind = "linear" if e.is_linear else ("zero" if e.is_zero else str(e.target_type))
+                print(f"  {p.name}[{i}] {kind} sectors={e.num_sectors} "
+                      f"offset={e.byte_offset} ({lp_mod.human_size(e.num_sectors * 512)})")
+    return 0
+
+
+def cmd_sparse(args) -> int:
+    blob = Path(args.image).read_bytes()
+    info = sparse_mod.describe(blob)
+    if args.json:
+        print(json.dumps(info, ensure_ascii=False, indent=2))
+    else:
+        print(f"文件    : {Path(args.image)}")
+        print(f"块大小  : {info['block_size']}B（{info['total_blocks']} 块）")
+        print(f"展开后  : {lp_mod.human_size(info['expanded_size'])}")
+        print(f"chunk   : {info['total_chunks']} 个 —— " +
+              ", ".join(f"{k}×{v}" for k, v in info["chunk_stats"].items()))
+
+    if args.unpack:
+        stats = sparse_mod.unpack(args.image, args.unpack)
+        print(f"已展开到: {args.unpack}（{lp_mod.human_size(stats['expanded_bytes'])}）")
+    return 0
+
+
 # ---- 解析器 -------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="iris", description="Iris —— Android 设备工具链")
@@ -183,6 +238,18 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("image", help="磁盘镜像文件")
     sp.add_argument("--json", action="store_true", help="输出 JSON")
     sp.set_defaults(func=cmd_gpt)
+
+    sp = sub.add_parser("super", help="解析 super 动态分区元数据（离线）")
+    sp.add_argument("image", help="super 镜像文件")
+    sp.add_argument("--json", action="store_true", help="输出 JSON")
+    sp.add_argument("--verbose", action="store_true", help="显示 extent 明细")
+    sp.set_defaults(func=cmd_super)
+
+    sp = sub.add_parser("sparse", help="识别/展开 Android sparse 镜像")
+    sp.add_argument("image", help="sparse 镜像文件")
+    sp.add_argument("--json", action="store_true", help="输出 JSON")
+    sp.add_argument("--unpack", metavar="OUT", help="展开到指定 raw 文件")
+    sp.set_defaults(func=cmd_sparse)
 
     sp = sub.add_parser("version", help="显示版本")
     sp.set_defaults(func=cmd_version)
