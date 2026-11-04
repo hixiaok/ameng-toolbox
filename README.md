@@ -4,7 +4,7 @@
 
 界面是原生 WPF 窗口（不是网页）；内置 `adb`、`fastboot` 与 `scrcpy`，安装后即可使用。
 
-![界面](docs/desktop-dashboard.png)
+![界面](docs/screenshot-0.5.1.png)
 
 ## 功能
 
