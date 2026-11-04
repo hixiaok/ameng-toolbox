@@ -3,43 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Iris</title>
+<title>Iris 工具箱</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="app">
+<div class="window">
   <header class="titlebar">
-    <span class="tb-title">Iris</span>
-    <div class="tb-right"><span class="tb-dot"></span><span class="tb-dot"></span><span class="tb-dot"></span></div>
+    <div class="mark">I</div>
+    <div class="tb-title">Iris 工具箱<span class="ver" id="ver">v__VERSION__</span></div>
+    <div class="tb-status" id="tbStatus"><i class="dot"></i><span>未连接</span></div>
+    <div class="win-ctrl">
+      <button title="最小化" tabindex="-1">—</button>
+      <button title="最大化" tabindex="-1">▢</button>
+      <button class="close" title="关闭" tabindex="-1">✕</button>
+    </div>
   </header>
 
-  <div class="body">
-    <aside class="side">
-      <dl class="devsum">
-        <dt>状态</dt><dd id="ds-state">未连接</dd>
-        <dt>设备</dt><dd id="ds-code">—</dd>
-        <dt>ROOT</dt><dd id="ds-root">—</dd>
-        <dt>槽位</dt><dd id="ds-slot">—</dd>
-      </dl>
-      <nav id="nav"></nav>
-      <div class="side-foot"><span>v0.4</span><span id="foot-state">离线</span></div>
+  <div class="shell">
+    <aside class="nav">
+      <div class="nav-list" id="nav"></div>
+      <div class="nav-foot" id="navFoot"></div>
     </aside>
-
     <main class="main" id="main"></main>
   </div>
 </div>
 
-<div id="boot-error" class="alert hidden" style="margin:12px 16px"></div>
-<script>
-  window.addEventListener("error", function (e) {
-    var box = document.getElementById("boot-error");
-    if (!box) return;
-    box.classList.remove("hidden");
-    box.textContent = "脚本出错：" + (e.message || e);
-  });
-</script>
-<script>window.__IRIS_TOKEN__ = "__TOKEN__";</script>
+<div class="toast" id="toast"></div>
 <input type="file" id="file" hidden>
+<script>window.addEventListener("error", function (e) {
+  const main = document.getElementById("main");
+  if (main && !main.dataset.booted) {
+    main.innerHTML = '<div class="card"><h2>脚本出错</h2><pre class="console">' + (e.message || e) + "</pre></div>";
+  }
+});</script>
+<script>window.__IRIS_TOKEN__ = "__TOKEN__";</script>
+<script>window.__IRIS_VERSION__ = "__VERSION__";</script>
 <script src="/static/app.js"></script>
 </body>
 </html>

@@ -59,11 +59,26 @@ def uninstall(adb: Adb, package: str) -> tuple[bool, str]:
     return ok, ("已卸载 " + package) if ok else ("卸载失败：" + (res.err or res.out).strip()[:300])
 
 
-def shell(adb: Adb, command: str, *, timeout: float = 30.0) -> tuple[bool, str]:
+def shell(adb: Adb, command: str, *, timeout: float = 30.0, root=None) -> tuple[bool, str]:
     adb.require_device()
-    res = adb.shell(command, timeout=timeout)
+    res = root.run(command, timeout=timeout) if root is not None else adb.shell(command, timeout=timeout)
     text = (res.out or "") + (("\n" + res.err) if res.err else "")
     return res.ok, text.strip()
+
+
+def shell_detail(adb: Adb, command: str, *, timeout: float = 60.0, root=None) -> dict:
+    """终端用：把退出码、耗时、stdout/stderr 分开返回，前端不用猜。"""
+    adb.require_device()
+    res = root.run(command, timeout=timeout) if root is not None else adb.shell(command, timeout=timeout)
+    return {
+        "ok": res.ok,
+        "code": res.code,
+        "out": res.out,
+        "err": res.err,
+        "duration": round(res.duration, 2),
+        "timed_out": res.timed_out,
+        "root": root is not None,
+    }
 
 
 def set_enabled(adb: Adb, package: str, enabled: bool) -> tuple[bool, str]:

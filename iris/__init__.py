@@ -8,5 +8,5 @@
 4. 无 UI 依赖：core 层不 import 任何界面库，CLI 只是第一个前端。
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = ["__version__"]

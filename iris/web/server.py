@@ -27,6 +27,9 @@ from ..core.adb import Adb
 from ..core.device import actions as device_actions
 from ..core.device import apps as device_apps
 from ..core.device import files as device_files
+from ..core.device import modules as device_modules
+from ..core.device import partitions as device_parts
+from ..core.device import root as device_root
 from ..core.tools import local as local_tools
 from ..core.errors import IrisError
 from ..core.image import avb as avb_mod
@@ -40,8 +43,10 @@ from ..core.profile import load_cached, probe, save
 
 BASE = Path(__file__).parent
 STATIC = BASE / "static"
-SHOTS = BASE.parents[1] / "shots"
+SHOTS = Path(os.environ.get("IRIS_SHOTS") or Path.cwd() / "shots")
+BACKUPS = Path(os.environ.get("IRIS_BACKUP_DIR") or Path.cwd() / "backups")
 MAX_UPLOAD = 16 * 1024 * 1024 * 1024  # 单文件上限 16GB
+MAX_JSON = 1 * 1024 * 1024
 
 # 上传的 payload / super 保留一段时间，供「提取分区」使用
 SESSION_TTL = 30 * 60
@@ -148,7 +153,11 @@ class Handler(BaseHTTPRequestHandler):
         path = url.path
 
         if path in ("/", "/index.html"):
-            html = (STATIC / "index.html").read_text("utf-8").replace("__TOKEN__", self.server.token)  # type: ignore[attr-defined]
+            html = (
+                (STATIC / "index.html").read_text("utf-8")
+                .replace("__TOKEN__", self.server.token)  # type: ignore[attr-defined]
+                .replace("__VERSION__", __version__)
+            )
             self._send(200, html.encode("utf-8"), CONTENT_TYPES[".html"])
             return
 
@@ -398,17 +407,77 @@ class Handler(BaseHTTPRequestHandler):
                 if not cmd:
                     self._fail(400, "缺少 cmd 参数")
                     return
-                ok, text = device_apps.shell(Adb(), cmd)
-                self._json({"ok": ok, "output": text})
+                serial = (query.get("serial") or [None])[0]
+                adb = Adb(serial=serial)
+                root = device_root.Root(adb) if (query.get("root") or ["0"])[0] == "1" else None
+                try:
+                    timeout = float((query.get("timeout") or ["60"])[0])
+                except ValueError:
+                    timeout = 60.0
+                self._json(device_apps.shell_detail(adb, cmd, timeout=timeout, root=root))
                 return
 
-            if path == "/api/tool":
-                self._api_tool(query)
+            if path == "/api/root":
+                serial = (query.get("serial") or [None])[0]
+                adb = Adb(serial=serial)
+                st = device_root.detect(adb)
+                payload = st.to_dict()
+                if st.available:
+                    mgr = device_modules.manager(adb, status=st)
+                    payload["manager_detail"] = mgr.to_dict()
+                self._json(payload)
+                return
+
+            if path == "/api/part/table":
+                serial = (query.get("serial") or [None])[0]
+                adb = Adb(serial=serial)
+                root = device_root.Root(adb)
+                parts = device_parts.table(adb, root)
+                self._json({
+                    "root": root.status.to_dict() if root.status else {},
+                    "partitions": [p.to_dict() for p in parts],
+                    "backup_dir": str(BACKUPS),
+                })
+                return
+
+            if path == "/api/modules":
+                serial = (query.get("serial") or [None])[0]
+                adb = Adb(serial=serial)
+                root = device_root.Root(adb)
+                st = root.refresh()
+                mgr = device_modules.manager(adb, root, st)
+                items = device_modules.list_modules(adb, root) if st.available else []
+                self._json({"manager": mgr.to_dict(), "modules": [m.to_dict() for m in items]})
+                return
+
+            if path == "/api/modules/log":
+                serial = (query.get("serial") or [None])[0]
+                adb = Adb(serial=serial)
+                lines = int((query.get("lines") or ["200"])[0] or 200)
+                self._json({"log": device_modules.logs(adb, lines=lines)})
+                return
+
+            if path == "/api/file/read":
+                remote = (query.get("path") or [""])[0]
+                if not remote:
+                    self._fail(400, "缺少 path 参数")
+                    return
+                serial = (query.get("serial") or [None])[0]
+                adb = Adb(serial=serial)
+                root = device_root.Root(adb) if (query.get("root") or ["0"])[0] == "1" else None
+                self._json(device_files.read_text(adb, remote, root))
                 return
 
             if path == "/api/file/ls":
                 remote = (query.get("path") or ["/sdcard"])[0]
-                self._json({"items": device_files.ls(Adb(), remote)})
+                serial = (query.get("serial") or [None])[0]
+                adb = Adb(serial=serial)
+                root = device_root.Root(adb) if (query.get("root") or ["0"])[0] == "1" else None
+                self._json({"items": device_files.ls(adb, remote, root), "root": root is not None})
+                return
+
+            if path == "/api/tool":
+                self._api_tool(query)
                 return
 
             if path == "/api/file/pull":
@@ -417,7 +486,100 @@ class Handler(BaseHTTPRequestHandler):
                     self._fail(400, "缺少 remote 参数")
                     return
                 dest = SHOTS / Path(remote).name
-                ok, msg = device_files.pull(Adb(), remote, str(dest))
+                serial = (query.get("serial") or [None])[0]
+                adb = Adb(serial=serial)
+                if (query.get("root") or ["0"])[0] == "1":
+                    ok, msg = device_files.pull_root(adb, remote, str(dest))
+                else:
+                    ok, msg = device_files.pull(adb, remote, str(dest))
+                self._json({"ok": ok, "message": msg})
+                return
+
+            self._fail(404, "unknown endpoint")
+        except IrisError as exc:
+            self._fail(400, str(exc), exc.hint or "")
+        except Exception as exc:  # noqa: BLE001
+            self._fail(500, f"内部错误：{type(exc).__name__}: {exc}")
+
+    # ---- 写操作（JSON API） -----------------------------------------
+    def _json_body(self) -> dict:
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            raise IrisError("Content-Length 非法")
+        if length <= 0:
+            raise IrisError("请求体为空")
+        if length > MAX_JSON:
+            raise IrisError("请求体过大")
+        raw = self.rfile.read(length)
+        try:
+            data = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            raise IrisError("请求体不是合法 JSON")
+        if not isinstance(data, dict):
+            raise IrisError("请求体必须是 JSON 对象")
+        return data
+
+    def _api_post(self, path: str, query: dict) -> None:
+        try:
+            body = self._json_body()
+            serial = (query.get("serial") or [None])[0]
+            adb = Adb(serial=serial)
+
+            if path == "/api/part/plan":
+                action = str(body.get("action") or "backup")
+                name = str(body.get("name") or "")
+                if not name:
+                    self._fail(400, "缺少分区名")
+                    return
+                if action == "restore":
+                    plan = device_parts.plan_restore(adb, name, str(body.get("path") or ""))
+                else:
+                    plan = device_parts.plan_backup(adb, name, str(body.get("dir") or BACKUPS))
+                self._json(plan.to_dict())
+                return
+
+            if path == "/api/part/backup":
+                name = str(body.get("name") or "")
+                if not name:
+                    self._fail(400, "缺少分区名")
+                    return
+                plan = device_parts.plan_backup(adb, name, str(body.get("dir") or BACKUPS))
+                self._json(device_parts.apply_backup(adb, plan))
+                return
+
+            if path == "/api/part/restore":
+                name = str(body.get("name") or "")
+                image = str(body.get("path") or "")
+                if not name or not image:
+                    self._fail(400, "缺少分区名或镜像路径")
+                    return
+                plan = device_parts.plan_restore(adb, name, image)
+                self._json(device_parts.apply_restore(adb, plan))
+                return
+
+            if path == "/api/flash":
+                part = str(body.get("part") or "")
+                image = str(body.get("image") or "")
+                if not part or not image:
+                    self._fail(400, "缺少分区名或镜像路径")
+                    return
+                self._json(device_parts.fastboot_flash(part, image, adb=adb, dry_run=bool(body.get("dry_run"))))
+                return
+
+            if path == "/api/modules/toggle":
+                name = str(body.get("name") or "")
+                ok, msg = device_modules.toggle(adb, name, bool(body.get("enabled")))
+                self._json({"ok": ok, "message": msg})
+                return
+
+            if path == "/api/modules/remove":
+                ok, msg = device_modules.mark_remove(adb, str(body.get("name") or ""))
+                self._json({"ok": ok, "message": msg})
+                return
+
+            if path == "/api/modules/install":
+                ok, msg = device_modules.install(adb, str(body.get("path") or ""))
                 self._json({"ok": ok, "message": msg})
                 return
 
@@ -443,7 +605,10 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if url.path != "/api/upload":
-            self._fail(404, "unknown endpoint")
+            if url.path.startswith("/api/"):
+                self._api_post(url.path, query)
+            else:
+                self._fail(404, "unknown endpoint")
             return
 
         name = unquote((query.get("name") or ["upload.bin"])[0])
@@ -510,7 +675,13 @@ class Server(ThreadingHTTPServer):
 
 
 def serve(port: int = 0, *, open_browser: bool = True, quiet: bool = False) -> int:
-    httpd = Server(("127.0.0.1", port), Handler, quiet=quiet)
+    try:
+        httpd = Server(("127.0.0.1", port), Handler, quiet=quiet)
+    except OSError as exc:
+        if not port:
+            raise
+        print(f"端口 {port} 被占用（{exc}），改用随机端口")
+        httpd = Server(("127.0.0.1", 0), Handler, quiet=quiet)
     host, real_port = httpd.server_address[0], httpd.server_address[1]
     url = f"http://{host}:{real_port}/"
 

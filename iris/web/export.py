@@ -261,7 +261,7 @@ def build_snapshot(image: str | None = None, version: str = "0.2.0") -> str:
         analysis = detect_and_parse(Path(image))
         data["/api/analyze"] = analysis
 
-    page = (STATIC / "index.html").read_text("utf-8").replace("__TOKEN__", "snapshot")
+    page = (STATIC / "index.html").read_text("utf-8").replace("__TOKEN__", "snapshot").replace("__VERSION__", version)
 
     # ---- 预渲染注入 ----
     page = page.replace(

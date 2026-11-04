@@ -1,105 +1,70 @@
-# Iris
+# A梦工具箱
 
-面向 Android 设备的多功能工具链。**核心库 + CLI 优先**，零第三方依赖（只用 Python 标准库），Windows / Linux / macOS 都能跑。
+面向 Android 设备的 Windows 桌面工具箱：设备信息、刷机 / Fastboot、ROOT 辅助、投屏、模块、应用管理、终端。
 
-> 定位：不是为了"再做一个刷机箱"，而是把刷机工具里最容易出错的部分——
-> 设备差异、路径探测、执行顺序、失败判定——做成可测试、可脚本化、可审计的一层。
+界面是原生 WPF 窗口（不是网页）；内置 `adb`、`fastboot` 与 `scrcpy`，安装后即可使用。
 
-## 当前状态：v0.2（只读 + 离线镜像）
+![界面](docs/desktop-dashboard.png)
 
-已实现：
+## 功能
 
-| 能力 | 说明 |
+| 页面 | 能做什么 |
 |---|---|
-| `iris doctor` | 环境自检：adb 版本、设备授权状态、驱动提示 |
-| `iris devices` | 列出在线设备 |
-| `iris info` | 设备画像：机型、SoC、A/B 槽位、安全补丁、by-name 根路径、分区表 |
-| `iris gpt <img>` | 离线解析 GPT：主/备表、CRC 校验、分区起止与大小 |
-| `iris super <img>` | 离线解析 super：LP geometry/header、分区与 extent 布局、checksum 告警 |
-| `iris super <img> --extract system_a` | 从 super 里切出单个分区镜像 |
-| `iris boot <img>` | 解析 boot.img / init_boot.img 头（v0–v4） |
-| `iris avb <img>` | 解析 vbmeta：签名算法、flags、描述符 |
-| `iris sparse <img>` | 识别 sparse 镜像，`--unpack` 展开为 raw |
-| `iris payload <bin>` | 解析 OTA payload.bin，`--extract boot` 直接还原分区镜像 |
-| `iris supermake --part system_a=system.img` | 把散包合并成合法 super.img |
-| `iris app list/install/uninstall/freeze/extract` | 应用管理（免 root） |
-| `iris push/pull/ls/record/tcpip/connect` | 文件传输、录屏、无线调试 |
-| `iris hash/split/join/sparsepack/gptxml/bootunpack` | 本地文件工具 |
-| `iris gui` | 本地 Web 界面：环境自检 / 设备画像 / 镜像拖放分析 + 分区提取 |
+| 仪表盘 | 设备信息、电量 / 存储 / 内存环形指标、详细参数、重启、截图、录屏、抓日志、无线调试 |
+| 快捷指令 | 重启到系统 / Recovery / Bootloader / Fastbootd、屏幕常亮、动画缩放、触摸显示、重启 ADB、打开设备管理器 |
+| 刷机 | 品牌线刷（单分区镜像）、小米整包线刷（`flash_all*.bat`）、Bootloader 解锁 / 回锁、双清、扩展功能、分区表备份还原 |
+| Fastboot | 检测设备、镜像预检、刷入分区、重启到系统 / bootloader / fastbootd |
+| ROOT | root 状态、备份 boot / init_boot / vbmeta、打开 Magisk / KernelSU、修补流程说明 |
+| 投屏 | 内置 scrcpy，分辨率 / 码率 / 窗口置顶 |
+| 基带备份 | modem / fsg / persist 等分区备份与还原 |
+| 模块 | Magisk / KernelSU 模块启停 |
+| 应用 | 全部 / 第三方应用、冻结、解冻、清数据、提取 APK、卸载、安装 APK |
+| 终端 | 设备 `adb shell` 或本机 CMD，root 开关、历史记录 |
+| 设置 | 运行环境、版本、作者与开源项目 |
 
-未实现（见路线图）：super 合并、AVB 签名、fastboot 刷写、EDL。
+## 下载
 
-## 快速开始
+从 [Releases](../../releases) 下载：
+
+- `A梦工具箱-x.y.z-安装程序.exe`：NSIS 安装包，安装到 Program Files，带开始菜单 / 桌面快捷方式和卸载项；
+- `A梦工具箱-x.y.z.zip`：绿色版，解压运行 `A梦工具箱.exe`。
+
+程序需要 **Windows 10/11 + .NET Framework 4.8**（系统自带），运行时需要管理员权限。
+
+## 从源码构建
 
 ```powershell
-python -m iris gui          # 打开界面（默认随机端口 + 自动开浏览器）
-python -m iris doctor
-python -m iris devices
-python -m iris info --verbose
-python -m iris gpt .tmp/demo_gpt.img
+# 1. 准备平台工具（adb / fastboot）到根目录 platform-tools/ 或 PATH
+# 2. 准备 scrcpy 到 desktop/tools/（可用下面的脚本自动下载）
+python desktop/fetch_tools.py
+
+# 3. 编译
+python desktop/build.py
+
+# 4. 安装包（需要 NSIS 的 makensis）
+makensis installer/setup.nsi
 ```
 
-`adb` 查找顺序：`--adb` 参数 → `IRIS_ADB` 环境变量 → `PATH` → 上溯各级目录下的 `platform-tools/adb.exe`。
+产物在 `dist/A梦工具箱/`。
 
-### 界面
+`desktop/build.py` 只依赖 Windows 自带的 `csc.exe`（.NET Framework 4.x），不需要 Visual Studio / .NET SDK。
 
-`iris gui` 起一个只监听 `127.0.0.1` 的本地服务（标准库 `http.server`，无第三方依赖），
-页面是纯静态 HTML/CSS/JS，拖一个 `.img` 进去会自动识别是 GPT / super / sparse 并渲染。
+## 第三方组件
 
-三条安全约束：只绑定回环地址；校验 `Host` 头（防 DNS rebinding）；每个请求必须带
-启动时生成的随机 token（内嵌在页面里，外部页面拿不到）。上传文件边传边落盘，解析完立即删除。
+| 组件 | 许可证 | 用途 |
+|---|---|---|
+| [scrcpy](https://github.com/Genymobile/scrcpy) 5.0.1 | Apache-2.0 | 投屏 |
+| [Android SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools)（adb / fastboot） | Apache-2.0 | 设备通信 |
+| .NET Framework / WPF | MIT | 桌面界面与运行环境 |
+| [NSIS](https://nsis.sourceforge.io/) 3.10 | zlib / libpng | 安装程序 |
 
-## 四条设计原则
+第三方组件版权归各自作者；随包分发的二进制见 `desktop/tools/` 与 `platform-tools/`。图标由作者提供。
 
-上游 [VioletToolBox](https://github.com/Smart-Paocai/VioletToolBox)（GPL-3.0）功能很全，但有四个结构性缺陷，本项目的骨架就是针对它们设计的：
+## 作者
 
-**1. 计划式执行，而不是按钮直连**
-任何会改动设备的操作，先生成一份 JSON 计划（机型、目标分区、风险、空间），`--dry-run` 可以只看不干。上游是点一下就跑，出问题只能翻日志。
+- QQ：17513499
+- 邮箱：jinkaizhe2@gmail.com
 
-**2. 结构化结果，而不是字符串匹配**
-上游用 `output.Contains("failed")` 判断成败，于是 `dd` 报 `No such file or directory` 时三个关键词全不匹配，被误判为成功（[上游 issue #4](https://github.com/Smart-Paocai/VioletToolBox/issues/4)）。这里统一用退出码 + `ProcResult`，127 / 124 / 非零各有明确语义。
+## 许可证
 
-**3. 探测优先，而不是硬编码路径**
-上游把 `/dev/block/bootdevice/by-name` 写死，玄戒 SoC 上整片功能失效。这里开机探测一次，把 by-name 根、块设备、槽位写进 `DeviceProfile` 缓存，功能只读 profile。
-
-**4. 核心与界面分离**
-上游 `MainWindow.xaml.cs` 有 947KB，逻辑和 UI 焊死，无法测试。这里的 `iris/core` 不 import 任何界面库，能脱离真机做单元测试。
-
-## 目录结构
-
-```
-iris/
-  cli.py              命令行入口
-  core/
-    proc.py           子进程执行（退出码语义、超时、编码容错）
-    adb.py            adb 封装（参数列表透传，不拼 shell 字符串）
-    profile.py        设备画像探测 + 缓存
-    diag.py           环境自检
-    errors.py         错误分类（对应不同退出码）
-    partition/gpt.py  GPT 解析（纯离线）
-    image/            镜像层（v0.2）
-tests/                单元测试 + GPT 镜像夹具
-```
-
-## 测试
-
-```powershell
-python -m unittest discover -s tests -t . -v
-```
-
-测试不需要真机：`tests/gpt_fixture.py` 会造一张 CRC 合法（含备份表）的 GPT 镜像；`tests/test_profile.py` 用回放式假 adb 复刻上游 issue #4 的设备场景。
-
-## 路线图
-
-| 版本 | 内容 |
-|---|---|
-| v0.1 | 只读：自检、设备画像、GPT ✅ |
-| v0.2 | 离线镜像引擎：payload 解包、sparse 互转、ext4/erofs 读 build.prop、super 解析与合并 |
-| v0.3 | 写入：flash plan / dry-run / apply、fastboot 刷分区、AB 槽、super 重建、AVB 签名 |
-| v0.4 | EDL（9008） |
-
-## 许可
-
-GPL-3.0。本项目参考了 VioletToolBox（GPL-3.0）的设计与算法知识，按 GPL-3.0 发布。
-仓库内**不包含**任何第三方二进制（kptools、ksud、QSaharaServer、fh_loader 等），
-需要时由用户自行提供或按哈希从官方渠道获取。
+本项目以 **GPL-3.0** 发布，详见 [LICENSE](LICENSE)。第三方组件按其自身许可证分发。

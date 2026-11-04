@@ -52,6 +52,26 @@ class Report:
         }
 
 
+def _find_fastboot(adb_path: str | None) -> str | None:
+    """adb 同目录优先（便携版就是这样），再退 PATH。"""
+    from pathlib import Path
+
+    if adb_path:
+        exe = Path(adb_path)
+        sibling = exe.with_name("fastboot.exe" if exe.suffix.lower() == ".exe" else "fastboot")
+        if sibling.is_file():
+            return str(sibling)
+    found = shutil.which("fastboot")
+    if found:
+        return found
+    for rel in ("platform-tools/fastboot.exe", "platform-tools/fastboot"):
+        for base in (Path.cwd(), *Path(__file__).resolve().parents):
+            cand = base / rel
+            if cand.is_file():
+                return str(cand)
+    return None
+
+
 def run_check(*, adb_exe: str | None = None) -> Report:
     from .adb import Adb, find_adb
     from .errors import ToolMissing
@@ -70,12 +90,12 @@ def run_check(*, adb_exe: str | None = None) -> Report:
     else:
         r.add("adb", FAIL, "未找到 adb", "安装 Android Platform Tools，放到 platform-tools/ 或设置 IRIS_ADB")
 
-    fastboot = shutil.which("fastboot")
+    fastboot = _find_fastboot(adb_path)
     if fastboot:
-        res = proc.run([fastboot, "version"], timeout=10)
+        res = proc.run([fastboot, "--version"], timeout=10)
         r.add("fastboot", OK if res.ok else WARN, f"{fastboot} | {res.first_line() or res.describe()}")
     else:
-        r.add("fastboot", WARN, "PATH 中未找到", "platform-tools 里自带，加入 PATH 即可")
+        r.add("fastboot", WARN, "未找到 fastboot", "把 platform-tools 解压到项目旁边，或加入 PATH")
 
     if adb_path:
         try:

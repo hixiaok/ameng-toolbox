@@ -7,3 +7,10 @@ dist/
 *.egg-info/
 .cache/
 images-out/
+
+android/build/
+
+
+desktop/tools/
+platform-tools/
+apk/

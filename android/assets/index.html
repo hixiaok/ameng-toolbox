@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Iris</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-left">
+    <div class="logo">I</div>
+    <div class="tb-text">
+      <div class="tb-title">Iris <span class="ver" id="ver"></span></div>
+      <div class="tb-sub" id="devline">正在读取设备…</div>
+    </div>
+  </div>
+  <button class="pill" id="rootPill">检测中</button>
+</header>
+
+<main id="main">
+
+  <!-- 终端 -->
+  <section class="page active" id="page-terminal">
+    <div class="card info-grid" id="infoGrid"></div>
+    <div class="term" id="termOut"></div>
+    <div class="term-bar">
+      <label class="switch"><input type="checkbox" id="termRoot"><span></span></label>
+      <input class="input mono" id="termCmd" placeholder="输入命令，回车执行" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="btn primary" id="termRun">执行</button>
+    </div>
+  </section>
+
+  <!-- 分区 -->
+  <section class="page" id="page-parts">
+    <div class="toolbar">
+      <input class="input" id="partFilter" placeholder="筛选分区" spellcheck="false">
+      <button class="btn" id="partRefresh">刷新</button>
+    </div>
+    <p class="hint">备份直接写进应用目录；还原会覆盖分区，务必看清名字。</p>
+    <div id="partList" class="list"></div>
+  </section>
+
+  <!-- 模块 -->
+  <section class="page" id="page-modules">
+    <div class="toolbar">
+      <button class="btn" id="modRefresh">刷新</button>
+      <button class="btn primary" id="modInstall">安装 zip</button>
+    </div>
+    <p class="hint" id="modManager">正在读取模块…</p>
+    <div id="modList" class="list"></div>
+  </section>
+
+  <!-- 文件 -->
+  <section class="page" id="page-files">
+    <div class="pathbar">
+      <button class="icon-btn" id="fileUp" title="上级">↑</button>
+      <input class="input mono" id="filePath" value="/sdcard" spellcheck="false" autocomplete="off">
+      <button class="btn" id="fileGo">打开</button>
+    </div>
+    <div class="toolbar" style="margin-top:8px">
+      <label class="chk"><input type="checkbox" id="fileRoot"> 以 root 浏览</label>
+      <button class="btn" id="fileHome">/sdcard</button>
+      <button class="btn" id="fileData">/data</button>
+    </div>
+    <div id="fileList" class="list"></div>
+  </section>
+
+  <!-- 应用 -->
+  <section class="page" id="page-apps">
+    <div class="toolbar">
+      <button class="btn" id="appThird">第三方</button>
+      <button class="btn" id="appAll">全部</button>
+      <input class="input" id="appFilter" placeholder="筛选包名" spellcheck="false">
+    </div>
+    <div id="appList" class="list"></div>
+  </section>
+
+</main>
+
+<nav class="tabbar" id="tabbar">
+  <button class="tab active" data-page="terminal">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></svg><span>终端</span>
+  </button>
+  <button class="tab" data-page="parts">
+    <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/></svg><span>分区</span>
+  </button>
+  <button class="tab" data-page="modules">
+    <svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/></svg><span>模块</span>
+  </button>
+  <button class="tab" data-page="files">
+    <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg><span>文件</span>
+  </button>
+  <button class="tab" data-page="apps">
+    <svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span>应用</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-mask hidden" id="modalMask">
+  <div class="modal">
+    <h3 id="modalTitle">确认</h3>
+    <p id="modalText"></p>
+    <div class="modal-btns">
+      <button class="btn" id="modalCancel">取消</button>
+      <button class="btn danger" id="modalOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

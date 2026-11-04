@@ -56,6 +56,43 @@ class TestWeb(unittest.TestCase):
         self.assertEqual(status, 401)
         self.assertIn("token", body.decode("utf-8").lower())
 
+    def test_index_has_version(self):
+        from iris import __version__
+
+        status, body = self.req("GET", "/")
+        self.assertEqual(status, 200)
+        self.assertIn(f"v{__version__}".encode(), body)
+
+    def test_root_endpoint_reports_no_device(self):
+        status, body = self.req("GET", "/api/root", headers=self.auth())
+        self.assertEqual(status, 400)
+        data = json.loads(body)
+        self.assertIn("设备", data["error"])
+        self.assertTrue(data["hint"])
+
+    def test_post_part_plan_requires_name(self):
+        status, body = self.req(
+            "POST", "/api/part/plan", body=json.dumps({"action": "backup"}).encode(),
+            headers={**self.auth(), "Content-Type": "application/json"},
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("分区名", json.loads(body)["error"])
+
+    def test_post_bad_json(self):
+        status, body = self.req(
+            "POST", "/api/modules/toggle", body=b"not json",
+            headers={**self.auth(), "Content-Type": "application/json"},
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("JSON", json.loads(body)["error"])
+
+    def test_post_unknown_endpoint(self):
+        status, _ = self.req(
+            "POST", "/api/nope", body=b"{}",
+            headers={**self.auth(), "Content-Type": "application/json"},
+        )
+        self.assertEqual(status, 404)
+
     def test_api_doctor_ok(self):
         status, body = self.req("GET", "/api/doctor", headers=self.auth())
         self.assertEqual(status, 200)

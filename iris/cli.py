@@ -493,6 +493,123 @@ def cmd_connect(args) -> int:
     return 0 if ok else 1
 
 
+def cmd_root(args) -> int:
+    from .core.device import root as device_root
+
+    status = device_root.detect(Adb(exe=args.adb, serial=args.serial))
+    if args.json:
+        print(json.dumps(status.to_dict(), ensure_ascii=False, indent=2))
+        return 0 if status.available else 5
+    rows = [
+        ("ROOT", "是" if status.available else "否"),
+        ("方式", status.method or "—"),
+        ("管理器", f"{status.manager} {status.version}".strip()),
+        ("su", status.su_path or "—"),
+        ("说明", status.reason or "—"),
+    ]
+    width = max(_dw(r[0]) for r in rows)
+    for k, v in rows:
+        print(f"{_pad(k, width)} : {v}")
+    return 0 if status.available else 5
+
+
+def cmd_part(args) -> int:
+    from .core.device import partitions
+
+    adb = Adb(exe=args.adb, serial=args.serial)
+
+    if args.part_cmd == "list":
+        parts = partitions.table(adb)
+        if args.json:
+            print(json.dumps([p.to_dict() for p in parts], ensure_ascii=False, indent=2))
+            return 0
+        print(_table([[p.name, p.size_text, p.path] for p in parts], ["分区", "大小", "设备路径"]))
+        print(f"\n共 {len(parts)} 个分区")
+        return 0
+
+    if args.part_cmd == "backup":
+        plan = partitions.plan_backup(adb, args.name, args.dir)
+        if args.json and args.dry_run:
+            print(json.dumps(plan.to_dict(), ensure_ascii=False, indent=2))
+            return 0
+        print(f"计划：备份 {plan.partition} → {plan.local_path}")
+        for w in plan.warnings:
+            print(f"  ! {w}")
+        for b in plan.blockers:
+            print(f"  ✗ {b}")
+        if args.dry_run or not plan.executable:
+            return 0 if plan.executable else 8
+        result = partitions.apply_backup(adb, plan)
+        print(f"✓ 已备份到 {result['local_path']}（{result['size_text']}）")
+        print(f"  sha256 {result['sha256']}  双端校验：{'通过' if result['verified'] else '设备缺少 sha256sum'}")
+        return 0
+
+    if args.part_cmd == "restore":
+        plan = partitions.plan_restore(adb, args.name, args.image)
+        print(f"计划：用 {plan.local_path} 覆盖 {plan.partition}（{plan.partition_size_text}）")
+        for w in plan.warnings:
+            print(f"  ! {w}")
+        for b in plan.blockers:
+            print(f"  ✗ {b}")
+        if args.dry_run or not plan.executable:
+            return 0 if plan.executable else 8
+        if not args.yes:
+            raise IrisError("还原会覆盖分区，确认请加 --yes", hint="先用 --dry-run 看计划")
+        result = partitions.apply_restore(adb, plan)
+        ok = result.get("ok", False)
+        print(("✓ 已写入 " if ok else "✗ 写入后校验失败 ") + plan.partition)
+        return 0 if ok else 1
+
+    if args.part_cmd == "flash":
+        result = partitions.fastboot_flash(args.name, args.image, adb=adb, dry_run=args.dry_run)
+        if args.dry_run:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
+        if not args.yes:
+            raise IrisError("fastboot 刷写不可撤销，确认请加 --yes")
+        print(("✓ " if result.get("ok") else "✗ ") + result.get("output", ""))
+        return 0 if result.get("ok") else 1
+    return 1
+
+
+def cmd_module(args) -> int:
+    from .core.device import modules
+
+    adb = Adb(exe=args.adb, serial=args.serial)
+
+    if args.module_cmd == "list":
+        mgr = modules.manager(adb)
+        items = modules.list_modules(adb)
+        if args.json:
+            print(json.dumps({"manager": mgr.to_dict(), "modules": [m.to_dict() for m in items]},
+                             ensure_ascii=False, indent=2))
+            return 0
+        print(f"管理器：{mgr.name} {mgr.version}".strip())
+        if not items:
+            print("没有已安装模块")
+            return 0
+        print(_table(
+            [["✓" if m.enabled else "✗", m.name, m.version, m.author or "-",
+              ("待卸载" if m.pending_remove else "")] for m in items],
+            ["启用", "模块", "版本", "作者", "状态"],
+        ))
+        return 0
+
+    if args.module_cmd == "install":
+        ok, msg = modules.install(adb, args.target)
+    elif args.module_cmd in ("enable", "disable"):
+        ok, msg = modules.toggle(adb, args.target, args.module_cmd == "enable")
+    elif args.module_cmd == "remove":
+        ok, msg = modules.mark_remove(adb, args.target)
+    elif args.module_cmd == "log":
+        print(modules.logs(adb, lines=args.lines))
+        return 0
+    else:
+        return 1
+    print(("✓ " if ok else "✗ ") + msg)
+    return 0 if ok else 1
+
+
 def cmd_supermake(args) -> int:
     from .core.image import superbuild
 
@@ -561,6 +678,27 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--timeout", type=float, default=30.0, help="超时秒数")
     add_common(sp)
     sp.set_defaults(func=cmd_shell)
+
+    sp = sub.add_parser("root", help="检测 root 与管理器（Magisk / KernelSU / APatch）")
+    add_common(sp)
+    sp.set_defaults(func=cmd_root)
+
+    sp = sub.add_parser("part", help="分区：list / backup / restore / flash")
+    add_common(sp)
+    sp.add_argument("part_cmd", choices=["list", "backup", "restore", "flash"])
+    sp.add_argument("name", nargs="?", help="分区名，如 boot_a")
+    sp.add_argument("image", nargs="?", help="还原/刷写用的本地镜像")
+    sp.add_argument("--dir", default="backups", help="备份保存目录")
+    sp.add_argument("--dry-run", action="store_true", help="只输出计划，不执行")
+    sp.add_argument("--yes", action="store_true", help="确认执行写操作")
+    sp.set_defaults(func=cmd_part)
+
+    sp = sub.add_parser("module", help="模块：list / install / enable / disable / remove / log")
+    add_common(sp)
+    sp.add_argument("module_cmd", choices=["list", "install", "enable", "disable", "remove", "log"])
+    sp.add_argument("target", nargs="?", help="模块名或 zip 路径")
+    sp.add_argument("--lines", type=int, default=200, help="日志行数")
+    sp.set_defaults(func=cmd_module)
 
     sp = sub.add_parser("push", help="把本地文件推到设备")
     sp.add_argument("local", help="本地路径")
