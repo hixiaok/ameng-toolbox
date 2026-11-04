@@ -26,8 +26,8 @@
 
 从 [Releases](../../releases) 下载：
 
-- `A梦工具箱-x.y.z-安装程序.exe`：NSIS 安装包，安装到 Program Files，带开始菜单 / 桌面快捷方式和卸载项；
-- `A梦工具箱-x.y.z.zip`：绿色版，解压运行 `A梦工具箱.exe`。
+- `AMengToolbox-x.y.z-setup.exe`：NSIS 安装包，安装到 Program Files，带开始菜单 / 桌面快捷方式和卸载项；
+- `AMengToolbox-x.y.z-portable.zip`：绿色版，解压运行 `A梦工具箱.exe`。
 
 程序需要 **Windows 10/11 + .NET Framework 4.8**（系统自带），运行时需要管理员权限。
 
