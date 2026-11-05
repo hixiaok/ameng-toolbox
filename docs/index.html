@@ -123,7 +123,7 @@ footer{padding:34px 0 46px;color:var(--muted);font-size:13px;border-top:1px soli
     <div>
       <span class="badge"><i class="dot"></i> v0.5.1 · Windows 10 / 11</span>
       <h1>安卓工具箱<br>也可以<em>干净、顺手</em></h1>
-      <p class="lead">A梦工具箱是一款面向 Android 的 Windows 桌面工具：设备信息、刷机 / Fastboot、ROOT 辅助、投屏、模块、应用管理与终端，全部在一个原生窗口里完成。</p>
+      <p class="lead">A梦工具箱把安卓调试、刷机、投屏、应用与文件管理收进一个原生 Windows 窗口：不用背命令，也不用在多个工具之间切换。内置 adb、fastboot 与 scrcpy，连上手机就能看到设备信息、装应用、刷分区、投屏和开终端。</p>
       <div class="cta">
         <a class="btn btn-primary" href="https://github.com/hixiaok/ameng-toolbox/releases/download/v0.5.1/AMengToolbox-0.5.1-setup.exe">⬇ 下载安装包</a>
         <a class="btn btn-ghost" href="https://github.com/hixiaok/ameng-toolbox/releases/download/v0.5.1/AMengToolbox-0.5.1-portable.zip">下载绿色版</a>
@@ -144,14 +144,14 @@ footer{padding:34px 0 46px;color:var(--muted);font-size:13px;border-top:1px soli
       <div><h2>一个窗口，覆盖常用操作</h2><p>不来回切换命令行和多个工具。</p></div>
     </div>
     <div class="grid">
-      <div class="card"><div class="ico">📊</div><h3>仪表盘</h3><p>设备信息、电量 / 存储 / 内存、详细参数、截图、录屏、日志、无线调试。</p></div>
-      <div class="card"><div class="ico">⚡</div><h3>快捷指令</h3><p>重启到系统 / Recovery / Bootloader / Fastbootd、屏幕常亮、动画缩放、重启 ADB。</p></div>
-      <div class="card"><div class="ico">🧰</div><h3>刷机 / Fastboot</h3><p>单分区线刷、小米整包 flash_all、Bootloader 解锁 / 回锁、双清、分区备份还原。</p></div>
-      <div class="card"><div class="ico">🔑</div><h3>ROOT 辅助</h3><p>root 状态、备份 boot / init_boot / vbmeta、打开 Magisk / KernelSU。</p></div>
-      <div class="card"><div class="ico">📺</div><h3>投屏</h3><p>内置 scrcpy，分辨率、码率、窗口置顶，开箱即用。</p></div>
-      <div class="card"><div class="ico">💾</div><h3>基带备份</h3><p>modem / fsg / persist 等分区备份与还原，关键数据先留一份。</p></div>
-      <div class="card"><div class="ico">📦</div><h3>应用 / 模块</h3><p>冻结、解冻、清数据、提取 APK、安装 APK；Magisk / KernelSU 模块启停。</p></div>
-      <div class="card"><div class="ico">⌨️</div><h3>终端</h3><p>设备 adb shell 或本机 CMD，root 开关、历史记录。</p></div>
+      <div class="card"><div class="ico">📊</div><h3>仪表盘</h3><p>连接后自动读取型号、系统版本、SoC、分辨率、DPI、电量、存储与内存；支持截图、录屏、抓日志、无线调试和重启设备。</p></div>
+      <div class="card"><div class="ico">⚡</div><h3>快捷指令</h3><p>把常用 adb 操作做成按钮：重启到系统 / Recovery / Bootloader / Fastbootd、屏幕常亮、动画缩放、显示触摸、重启 ADB、打开设备管理器。</p></div>
+      <div class="card"><div class="ico">🧰</div><h3>刷机 / Fastboot</h3><p>按品牌把镜像刷进指定分区；小米 / 红米支持整包 flash_all 脚本；另有 Bootloader 解锁 / 回锁、双清、分区表读取与备份还原。</p></div>
+      <div class="card"><div class="ico">🔑</div><h3>ROOT 辅助</h3><p>检测 root 状态与管理器，备份 boot / init_boot / vbmeta，一键打开 Magisk / KernelSU；页面内附修补流程说明。</p></div>
+      <div class="card"><div class="ico">📺</div><h3>投屏</h3><p>内置官方 scrcpy 5.0.1，可选分辨率、码率、窗口置顶，不需要再单独下载。</p></div>
+      <div class="card"><div class="ico">💾</div><h3>基带备份</h3><p>modem / fsg / fsc / persist 等基带相关分区单独列出，支持备份到电脑和还原，改机前先留一份。</p></div>
+      <div class="card"><div class="ico">📦</div><h3>应用 / 模块</h3><p>全部 / 第三方应用列表，支持冻结、解冻、清数据、提取 APK、卸载和安装 APK；模块页可启停 Magisk / KernelSU 模块。</p></div>
+      <div class="card"><div class="ico">⌨️</div><h3>终端</h3><p>设备 adb shell 或本机 CMD 两种模式，支持 root 开关、历史记录、输出复制，方便临时排查问题。</p></div>
     </div>
   </section>
 
@@ -208,9 +208,7 @@ footer{padding:34px 0 46px;color:var(--muted);font-size:13px;border-top:1px soli
     <div class="author">
       <div class="card">
         <p style="margin:0;line-height:1.9;color:var(--muted);font-size:14.5px">
-          这个软件是由 <b>DeepSeek</b> 写的，我本人不懂这方面，所以有问题请联系我的邮箱，谢谢，我会尽力修复。<br><br>
-          我自己好多功能没有试过，不敢肯定它好用，但可以保证有问题我会继续更新。开发过程中还借鉴了紫罗兰工具箱、搞机助手等工具，这里谢谢大家和各位作者了。
-        </p>
+          我是一个普通的安卓爱好者，不是专业开发，这个工具箱是我边学边做出来的。初衷很简单：把平时刷机、装模块、传文件、投屏常用的操作集中到一个窗口里，少敲点命令，也少在几个工具之间来回切换。<br><br>很多功能我还没有在足够多的机型上实测过，不敢保证每个都好用；如果你遇到问题，请把机型、系统版本、操作步骤和截图发到我的邮箱，我会尽力修复，也会继续更新。<br><br>开发过程中参考和借鉴了紫罗兰工具箱、搞机助手等工具的思路，也使用了 scrcpy、adb/fastboot 等开源项目，这里谢谢各位作者。</p>
       </div>
       <div class="card">
         <h3 style="margin-top:0">联系作者</h3>
@@ -230,7 +228,7 @@ footer{padding:34px 0 46px;color:var(--muted);font-size:13px;border-top:1px soli
 <footer>
   <div class="wrap foot-in">
     <div>© <span id="year"></span> A梦工具箱 · GPL-3.0</div>
-    <div>由 DeepSeek 编写 · 有问题请联系 jinkaizhe2@gmail.com</div>
+    <div>有问题请联系 jinkaizhe2@gmail.com</div>
   </div>
 </footer>
 <script>
