@@ -1,5 +1,7 @@
 # A梦工具箱
 
+🌐 官网：https://hixiaok.github.io/ameng-toolbox/
+
 面向 Android 设备的 Windows 桌面工具箱：设备信息、刷机 / Fastboot、ROOT 辅助、投屏、模块、应用管理、终端。
 
 界面是原生 WPF 窗口（不是网页）；内置 `adb`、`fastboot` 与 `scrcpy`，安装后即可使用。
